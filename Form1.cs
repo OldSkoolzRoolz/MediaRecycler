@@ -16,6 +16,7 @@ public partial class Form1 : Form
     {
         InitializeComponent();
         SetStatusLabelText("Ready");
+
         // _logger.LogInformation("Form1 initialized with injected logger.");
     }
 

@@ -20,23 +20,31 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
+        ApplicationConfiguration.Initialize();
+
+
+        var form = new Form1();
 
         // LoggerFactory implements IDisposable. Using a 'using' statement ensures it's
         // properly disposed of when the application exits, which in turn disposes
         // registered providers like FileLoggerProvider.
-        var loggerFactory = LoggerFactory.Create(builder =>
+        using var loggerFactory = LoggerFactory.Create(builder =>
         {
             // Configure FileLoggerProvider to log Information level and above to "app.log"
             // Debug and Trace messages will not be written to this provider.
             builder.AddProvider(new FileLoggerProvider("app.log", LogLevel.Information));
+            builder.AddProvider(new ControlLoggerProvider(form.MainLogRichTextBox, LogLevel.Trace));
 
         });
-        var form = new Form1();
-        ApplicationConfiguration.Initialize();
+
+        var logger = loggerFactory.CreateLogger<Form1>();
+        logger.LogInformation("Application configuration is complete, Main form opening...");
+
+
+
         Application.Run(form);
 
-        loggerFactory.AddProvider(new ControlLoggerProvider(form.MainLogRichTextBox, LogLevel.Trace));
 
-        loggerFactory.Dispose(); // is called here
+
     }
 }
