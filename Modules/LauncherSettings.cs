@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
-namespace Scrapper;
+
+
+
+namespace MediaRecycler.Modules;
+
 public class LauncherSettings : PuppeteerSharp.LaunchOptions
 {
-
 }

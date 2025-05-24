@@ -1,18 +1,13 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder [InvalidReference]
-// **** Distributed under Open Source License ***
-// ***   Do not remove file headers ***
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
 
 using System.Collections.Concurrent;
 
-using MediaRecycler.Modules;
-
 using Microsoft.Extensions.Logging;
 
-namespace MediaRecycler;
+namespace MediaRecycler.Modules;
 
 public class FileLoggerProvider : ILoggerProvider
 {

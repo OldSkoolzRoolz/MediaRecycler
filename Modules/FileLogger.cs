@@ -1,7 +1,4 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder [InvalidReference]
-// **** Distributed under Open Source License ***
-// ***   Do not remove file headers ***
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -35,7 +32,7 @@ public class FileLogger : ILogger
 
 
 
-    public IDisposable BeginScope<TState>(TState state)
+    IDisposable ILogger.BeginScope<TState>(TState state) 
     {
         return new FileLoggerScope(state!);
     }
@@ -72,7 +69,10 @@ public class FileLogger : ILogger
         var messageBuilder = new System.Text.StringBuilder();
         // The formatter delegate is Func<TState, Exception?, string>, so it's designed to handle a null exception.
         // Pass the original exception (which can be null) directly.
-        messageBuilder.Append($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}");
+#pragma warning disable CS8604 // Possible null reference argument.
+        messageBuilder.Append(
+            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}");
+#pragma warning restore CS8604 // Possible null reference argument.
 
         if (exception != null)
         {
@@ -86,7 +86,8 @@ public class FileLogger : ILogger
             {
                 Directory.CreateDirectory(logDirectory);
             }
-            File.AppendAllText(_filePath, messageBuilder.ToString() + Environment.NewLine);
+
+            File.AppendAllText(_filePath, messageBuilder + Environment.NewLine);
         }
         catch (Exception ex)
         {

@@ -1,12 +1,10 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder [InvalidReference]
-// **** Distributed under Open Source License ***
-// ***   Do not remove file headers ***
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
 
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.Json;
@@ -17,7 +15,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Polly;
 using Polly.Retry;
 
-namespace KC.Downloader;
+namespace MediaRecycler.Modules;
 
 // For NullLogger
 // For jitter
@@ -227,12 +225,17 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+    // Remove the [MemberNotNull] attribute as it is causing the CS8776 error.
+    // Instead, ensure that the _settings.DownloadPath is validated and not null in the constructor.
+
 
     private async Task PerformDownloadCoreAsync(Uri url, CancellationToken cancellationToken)
     {
+        // _settings.DownloadPath is already validated in the constructor, so no need for [MemberNotNull].
         var fileName = GetSafeFileName(url);
+#pragma warning disable CS8604 // Possible null reference argument.
         var filePath = Path.Combine(_settings.DownloadPath, fileName);
-        Directory.CreateDirectory(_settings.DownloadPath);
+#pragma warning restore CS8604 // Possible null reference argument.
 
         using var response = await _httpClient
             .GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
@@ -331,25 +334,29 @@ public class DownloaderModule : IAsyncDisposable
         _isStarted = true;
         _processingCts = CancellationTokenSource.CreateLinkedTokenSource(_masterCts.Token);
 
-        // Ensure download directory exists
+        // Ensure download directory exists. Redundant already in the constructor, but here for clarity.
 
         try
         {
-            Directory.CreateDirectory(_settings.DownloadPath);
-            _logger.LogInformation("Ensured download directory exists: {DownloadPath}",
-                Path.GetFullPath(_settings.DownloadPath));
+            if(!Directory.Exists(_settings.DownloadPath) && _settings.DownloadPath != null)
+                {
+                Directory.CreateDirectory(_settings.DownloadPath);
+            }
+
+#pragma warning disable CS8604 // Possible null reference argument.
+            _logger.LogTrace("Ensured download directory exists: {DownloadPath}", Path.GetFullPath(_settings.DownloadPath));
+
         }
         catch (Exception ex)
         {
-            _logger.LogCritical(ex, "Failed to create download directory: {DownloadPath}. Aborting start.",
-                Path.GetFullPath(_settings.DownloadPath));
+            _logger.LogCritical(ex, "Failed to create download directory: {DownloadPath}. Aborting start.", Path.GetFullPath(_settings.DownloadPath));
             _isStarted = false;
             _processingCts?.Dispose();
             _processingCts = null;
             _processingTask = null; // Ensure processing task is null if start fails
             return; // Cannot proceed without download directory
         }
-
+#pragma warning restore CS8604 // Possible null reference argument.
         // Start worker tasks
         // Let exceptions propagate if task creation fails. The caller of Start should handle this.
         for (var i = 0; i < _settings.MaxConcurrency; i++)

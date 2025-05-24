@@ -3,15 +3,62 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
+      <TargetFramework>net9.0-windows10.0.17763.0</TargetFramework>
+    <UseWindowsForms>True</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <Description>Media Recycler is a user friendly application that can help recover  your videos or images from your website or intraweb that may be reused in other applications.</Description>
+    <Copyright>2025</Copyright>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <Optimize>False</Optimize>
+    <DebugType>embedded</DebugType>
+    <WarningLevel>8</WarningLevel>
+    <IsPublishable>False</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DebugType>embedded</DebugType>
+    <WarningLevel>8</WarningLevel>
+    <IsPublishable>False</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows|AnyCPU'">
+    <Optimize>False</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.5" />
+    <PackageReference Include="microsoft.extensions.configuration.json" Version="9.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.5" />
+    <PackageReference Include="Polly" Version="8.5.2" />
+    <PackageReference Include="PuppeteerSharp" Version="20.1.3" />
+    <PackageReference Include="PuppeteerSharp.Dom" Version="5.0.43" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\KC\Crawler\MiniFrontier\code\MiniFrontier.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Scraper.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Scraper.settings</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
   </ItemGroup>
 
@@ -23,17 +70,21 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="JetBrains.Annotations" Version="2025.1.0-eap1" />
-    <PackageReference Include="Polly" Version="8.5.2" />
-    <PackageReference Include="Polly.Contrib.WaitAndRetry" Version="1.1.1" />
-    <PackageReference Include="puppeteersharp" Version="20.1.3" />
-    <PackageReference Include="puppeteersharp.dom" Version="5.0.43" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="MiniFrontier">
-      <HintPath>..\..\KC\Crawler\MiniFrontier\code\bin\Debug\net9.0\MiniFrontier.dll</HintPath>
-    </Reference>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Properties\Scraper.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Scraper.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="Properties\Settings.settings">
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>

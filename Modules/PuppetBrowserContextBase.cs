@@ -1,16 +1,22 @@
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
+using PuppeteerSharp.Dom;
+
 using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.Extensions.Logging;
+
 using PuppeteerSharp;
 
-namespace Scrapper;
+namespace MediaRecycler.Modules;
 
 // Inherits from the refactored base class
 public class PuppetBrowserContextBase : PuppetBrowserBase
 {
     private readonly ILogger<PuppetBrowserContextBase> logger;
+
+
 
 
 
@@ -26,8 +32,12 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
 
 
 
+
+
     // Use private set for better encapsulation
     protected IBrowserContext? Context { get; private set; }
+
+
 
 
 
@@ -48,10 +58,13 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
 
 
 
+
+
     protected virtual async Task DisposeAsyncCore()
     {
         logger.LogDebug("Disposing Context asynchronously...");
         if (Context is { IsClosed: false })
+        {
             try
             {
                 await Context.CloseAsync();
@@ -65,6 +78,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
             {
                 Context = null!; // Set to null after disposal attempt
             }
+        }
 
         logger.LogDebug("Calling base DisposeAsyncCore...");
         await DisposeAsync();
