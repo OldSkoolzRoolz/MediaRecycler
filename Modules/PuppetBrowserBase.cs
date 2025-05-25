@@ -1,18 +1,27 @@
+#region Header
+
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
+#endregion
+
+
+
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
 
 
 // Added for NullLogger
 
 
 
-
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 
 using PuppeteerSharp;
 
+
+
 namespace MediaRecycler.Modules;
+
 
 /// <summary>
 ///     Base class for managing a Puppeteer Browser instance.
@@ -20,7 +29,8 @@ namespace MediaRecycler.Modules;
 /// </summary>
 public class PuppetBrowserBase : IAsyncDisposable
 {
-    protected readonly ILogger<PuppetBrowserBase> _browserLogger;
+
+    protected readonly ILogger _browserLogger;
     private bool _disposed; // To detect redundant calls
     protected LauncherSettings _launchOptions = new();
 
@@ -29,13 +39,11 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-
-    public PuppetBrowserBase(ILoggerFactory factory)
+    public PuppetBrowserBase(ILogger factory)
     {
         // Use NullLogger if null is passed, preventing NullReferenceExceptions later
-        _browserLogger = factory.CreateLogger<PuppetBrowserBase>() ?? NullLogger<PuppetBrowserBase>.Instance;
+        _browserLogger = factory;
     }
-
 
 
 
@@ -50,7 +58,6 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
     // --- IAsyncDisposable Implementation (Standard Pattern) ---
-
 
 
 
@@ -73,7 +80,6 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-
     /// <summary>
     ///     Initializes the Puppeteer browser instance asynchronously.
     ///     If the browser is already initialized, this method will return without creating a new instance.
@@ -81,7 +87,8 @@ public class PuppetBrowserBase : IAsyncDisposable
     /// <exception cref="Exception">Propagates exceptions from PuppeteerSharp during browser launch.</exception>
     public virtual async Task InitializeAsync(LauncherSettings launchOptions)
     {
-        _launchOptions = launchOptions; 
+        _launchOptions = launchOptions;
+
         // Prevent re-initialization
         if (Browser != null)
         {
@@ -111,6 +118,7 @@ public class PuppetBrowserBase : IAsyncDisposable
         try
         {
             _browserLogger.LogInformation("Initializing browser...");
+
             //_browserLogger.LogDebug("Using LaunchOptions: Headless={Headless}, Width={Width}, Height={Height}",
 
 
@@ -119,7 +127,9 @@ public class PuppetBrowserBase : IAsyncDisposable
             // Initialize the browser with the provided launch options
             //  var dargs = Puppeteer.GetDefaultArgs();
             Browser = await Puppeteer.LaunchAsync(new LaunchOptions
-            { Headless = false, UserDataDir = _launchOptions.UserDataDir });
+            {
+                Headless = false, UserDataDir = _launchOptions.UserDataDir
+            });
 
 
 
@@ -143,7 +153,6 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-
     /// <summary>
     ///     Placeholder method intended for setting up network monitoring.
     ///     This base implementation throws NotImplementedException.
@@ -154,10 +163,10 @@ public class PuppetBrowserBase : IAsyncDisposable
         // Method will setup a network monitor mechanism that will watch
         // for invalid connection situations and prevent browser instantiation or renew it.
         _browserLogger.LogWarning("ConfigureNetworkMonitor is not implemented in the base class.");
+
         // Keep or remove based on actual need. If keeping, derived classes should override.
         // throw new NotImplementedException("Network monitoring setup is not implemented.");
     }
-
 
 
 
@@ -176,6 +185,7 @@ public class PuppetBrowserBase : IAsyncDisposable
             {
                 // Dispose managed state (managed objects).
                 _browserLogger.LogInformation("Disposing browser resources (disposing={Disposing})...", disposing);
+
                 if (Browser != null)
                 {
                     try
@@ -216,11 +226,11 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-
     // Optional: Override finalizer only if you have unmanaged resources
     // ~PuppetBrowserBase()
     // {
     //     // Do not change this code. Put cleanup code in 'DisposeAsync(bool disposing)' method
     //     DisposeAsync(disposing: false).AsTask().Wait(); // Or use other sync-over-async approach carefully
     // }
+
 }

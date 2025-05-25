@@ -1,10 +1,18 @@
+#region Header
+
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
+#endregion
+
+
+
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
 
 
 // Required for Win32Exception
 
 // For NullLogger
-
 
 
 
@@ -14,14 +22,18 @@ using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
+
+
 namespace MediaRecycler.Modules;
 // Using a sub-namespace for utilities
+
 
 /// <summary>
 ///     Provides utility methods for process management.
 /// </summary>
 public static class ProcessUtils
 {
+
     /// <summary>
     ///     Finds and attempts to terminate all running processes with the specified name (case-insensitive).
     /// </summary>
@@ -31,7 +43,7 @@ public static class ProcessUtils
     public static int KillProcessesByName(string processName, ILogger? logger = null)
     {
         logger ??= NullLogger.Instance; // Use NullLogger if none provided
-        var killedCount = 0;
+        int killedCount = 0;
 
         if (string.IsNullOrWhiteSpace(processName))
         {
@@ -42,22 +54,22 @@ public static class ProcessUtils
         logger.LogInformation("Attempting to find and kill processes named '{ProcessName}'...", processName);
 
         // Get all processes and filter manually for case-insensitivity and robustness
-        var processesToKill = Process.GetProcesses()
+        IEnumerable<Process>? processesToKill = Process.GetProcesses()
             .Where(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
 
-        foreach (var process in processesToKill)
+        foreach (Process? process in processesToKill)
         {
             try
             {
                 logger.LogDebug("Attempting to kill process ID: {ProcessId}, Name: {ProcessName}", process.Id,
                     process.ProcessName);
                 process.Kill(true); // Attempt to kill the entire process tree
-                process.WaitForExit(5000); // Wait briefly for the process to exit
+                _ = process.WaitForExit(5000); // Wait briefly for the process to exit
                 logger.LogInformation("Successfully killed process ID: {ProcessId}", process.Id);
                 killedCount++;
             }
-            catch (Exception ex) when (ex is Win32Exception || ex is InvalidOperationException ||
-                                       ex is NotSupportedException)
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or
+                                           NotSupportedException)
             {
                 logger.LogWarning(ex,
                     "Failed to kill process ID: {ProcessId}. It might have already exited or access was denied.",
@@ -70,4 +82,5 @@ public static class ProcessUtils
             killedCount, processName);
         return killedCount;
     }
+
 }

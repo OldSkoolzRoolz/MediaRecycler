@@ -3,16 +3,21 @@
 
 
 
+using System.Text;
+
 using Microsoft.Extensions.Logging;
+
+
 
 namespace MediaRecycler.Modules;
 
+
 public class FileLogger : ILogger
 {
+
     private readonly string _categoryName;
     private readonly string _filePath;
     private readonly LogLevel _minLogLevel;
-
 
 
 
@@ -31,12 +36,10 @@ public class FileLogger : ILogger
 
 
 
-
-    IDisposable ILogger.BeginScope<TState>(TState state) 
+    IDisposable ILogger.BeginScope<TState>(TState state)
     {
         return new FileLoggerScope(state!);
     }
-
 
 
 
@@ -47,7 +50,6 @@ public class FileLogger : ILogger
     {
         return logLevel >= _minLogLevel;
     }
-
 
 
 
@@ -66,25 +68,27 @@ public class FileLogger : ILogger
         // file open/close operations. Consider a buffered writer or a dedicated logging thread
         // with a queue for performance-critical scenarios.
 
-        var messageBuilder = new System.Text.StringBuilder();
+        StringBuilder messageBuilder = new();
+
         // The formatter delegate is Func<TState, Exception?, string>, so it's designed to handle a null exception.
         // Pass the original exception (which can be null) directly.
 #pragma warning disable CS8604 // Possible null reference argument.
-        messageBuilder.Append(
+        _ = messageBuilder.Append(
             $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}");
 #pragma warning restore CS8604 // Possible null reference argument.
 
         if (exception != null)
         {
-            messageBuilder.AppendLine().Append(exception); // Appends exception details including stack trace
+            _ = messageBuilder.AppendLine().Append(exception); // Appends exception details including stack trace
         }
 
         try
         {
-            var logDirectory = Path.GetDirectoryName(_filePath);
+            string? logDirectory = Path.GetDirectoryName(_filePath);
+
             if (!string.IsNullOrEmpty(logDirectory) && !Directory.Exists(logDirectory))
             {
-                Directory.CreateDirectory(logDirectory);
+                _ = Directory.CreateDirectory(logDirectory);
             }
 
             File.AppendAllText(_filePath, messageBuilder + Environment.NewLine);
@@ -102,11 +106,10 @@ public class FileLogger : ILogger
 
 
 
-
     private class FileLoggerScope : IDisposable
     {
-        private static readonly AsyncLocal<Stack<FileLoggerScope>> _currentScopes = new();
 
+        private static readonly AsyncLocal<Stack<FileLoggerScope>> _currentScopes = new();
 
 
 
@@ -117,14 +120,11 @@ public class FileLogger : ILogger
         {
             State = state; // State can be null as per ILogger.BeginScope contract
             Parent = Current;
-            if (_currentScopes.Value == null)
-            {
-                _currentScopes.Value = new Stack<FileLoggerScope>();
-            }
+
+            _currentScopes.Value ??= new Stack<FileLoggerScope>();
 
             _currentScopes.Value.Push(this);
         }
-
 
 
 
@@ -145,7 +145,7 @@ public class FileLogger : ILogger
         {
             get
             {
-                var stack = _currentScopes.Value;
+                Stack<FileLoggerScope>? stack = _currentScopes.Value;
                 return stack != null && stack.Count > 0 ? stack.Peek() : null;
             }
         }
@@ -155,14 +155,16 @@ public class FileLogger : ILogger
 
 
 
-
         public void Dispose()
         {
-            var stack = _currentScopes.Value;
+            Stack<FileLoggerScope>? stack = _currentScopes.Value;
+
             if (stack != null && stack.Count > 0)
             {
-                stack.Pop();
+                _ = stack.Pop();
             }
         }
+
     }
+
 }

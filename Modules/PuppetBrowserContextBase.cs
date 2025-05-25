@@ -1,8 +1,6 @@
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
-using PuppeteerSharp.Dom;
-
 using System.Diagnostics.CodeAnalysis;
 
 using Microsoft.Extensions.Logging;
@@ -14,7 +12,7 @@ namespace MediaRecycler.Modules;
 // Inherits from the refactored base class
 public class PuppetBrowserContextBase : PuppetBrowserBase
 {
-    private readonly ILogger<PuppetBrowserContextBase> logger;
+    private readonly ILogger _logger;
 
 
 
@@ -22,10 +20,10 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
 
 
 
-    public PuppetBrowserContextBase(ILoggerFactory factory) : base(factory)
+    public PuppetBrowserContextBase(ILogger logger) : base(logger)
     {
 
-        logger = factory.CreateLogger<PuppetBrowserContextBase>();
+        _logger = logger;
     }
 
 
@@ -62,7 +60,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
 
     protected virtual async Task DisposeAsyncCore()
     {
-        logger.LogDebug("Disposing Context asynchronously...");
+        _logger.LogDebug("Disposing Context asynchronously...");
         if (Context is { IsClosed: false })
         {
             try
@@ -71,7 +69,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error disposing the Puppeteer context.");
+                _logger.LogError(ex, "Error disposing the Puppeteer context.");
                 // Swallow or handle exception during disposal as needed
             }
             finally
@@ -80,10 +78,10 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
             }
         }
 
-        logger.LogDebug("Calling base DisposeAsyncCore...");
+        _logger.LogDebug("Calling base DisposeAsyncCore...");
         await DisposeAsync();
 
-        logger.LogDebug("Context asynchronous disposal complete.");
+        _logger.LogDebug("Context asynchronous disposal complete.");
 
     }
 }

@@ -2,7 +2,7 @@
 
 namespace MediaRecycler;
 
-partial class PuppeteerSettings
+partial class PuppeteerSettingsForm
 {
     /// <summary>
     /// Required designer variable.

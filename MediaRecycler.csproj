@@ -10,7 +10,8 @@
     <Description>Media Recycler is a user friendly application that can help recover  your videos or images from your website or intraweb that may be reused in other applications.</Description>
     <Copyright>2025</Copyright>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-  
+      <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+      <ApplicationUseCompatibleTextRendering>false</ApplicationUseCompatibleTextRendering>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -41,7 +42,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\KC\Crawler\MiniFrontier\code\MiniFrontier.csproj" />
+    <Reference Include="MiniFrontier">
+      <HintPath>Frontier\MiniFrontier.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -74,7 +77,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Properties\Scraper.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
+      <Generator>PublicSettingsSingleFileGenerator</Generator>
       <LastGenOutput>Scraper.Designer.cs</LastGenOutput>
     </None>
     <None Update="Properties\Settings.settings">

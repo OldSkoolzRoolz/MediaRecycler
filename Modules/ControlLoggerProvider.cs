@@ -7,14 +7,17 @@ using System.Collections.Concurrent;
 
 using Microsoft.Extensions.Logging;
 
+
+
 namespace MediaRecycler.Modules;
+
 
 public class ControlLoggerProvider : ILoggerProvider
 {
+
     private readonly Control _control;
     private readonly ConcurrentDictionary<string, ControlLogger> _loggers = new();
     private readonly LogLevel _minLogLevel;
-
 
 
 
@@ -32,7 +35,6 @@ public class ControlLoggerProvider : ILoggerProvider
 
 
 
-
     public ILogger CreateLogger(string categoryName)
     {
         return _loggers.GetOrAdd(categoryName, name => new ControlLogger(_control, _minLogLevel, name));
@@ -43,16 +45,17 @@ public class ControlLoggerProvider : ILoggerProvider
 
 
 
-
     public void Dispose() { }
+
 }
+
 
 public class ControlLogger : ILogger
 {
+
     private readonly string _categoryName;
     private readonly Control _control;
     private readonly LogLevel _minLogLevel;
-
 
 
 
@@ -71,21 +74,10 @@ public class ControlLogger : ILogger
 
 
 
-
     public IDisposable BeginScope<TState>(TState state) where TState : notnull
     {
         return NullScope.Instance;
     }
-
-    private class NullScope : IDisposable
-    {
-        public static readonly NullScope Instance = new NullScope();
-
-        private NullScope() { }
-
-        public void Dispose() { }
-    }
-
 
 
 
@@ -96,7 +88,6 @@ public class ControlLogger : ILogger
     {
         return logLevel >= _minLogLevel;
     }
-
 
 
 
@@ -116,7 +107,8 @@ public class ControlLogger : ILogger
             return;
         }
 
-        var message = $"{DateTime.Now:HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}";
+        string? message = $"{DateTime.Now:HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}";
+
         if (exception != null)
         {
             message += Environment.NewLine + exception;
@@ -137,7 +129,6 @@ public class ControlLogger : ILogger
 
 
 
-
     private void AppendText(string message)
     {
         if (_control is RichTextBox rtb)
@@ -149,4 +140,21 @@ public class ControlLogger : ILogger
             tb.AppendText(message + Environment.NewLine);
         }
     }
+
+
+
+
+
+
+    private class NullScope : IDisposable
+    {
+
+        public static readonly NullScope Instance = new();
+
+        private NullScope() { }
+
+        public void Dispose() { }
+
+    }
+
 }

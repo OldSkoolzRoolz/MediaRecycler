@@ -2,7 +2,7 @@
 
 namespace MediaRecycler;
 
-partial class DownloaderSettings
+partial class DownloaderSettingsForm
 {
     /// <summary>
     /// Required designer variable.
