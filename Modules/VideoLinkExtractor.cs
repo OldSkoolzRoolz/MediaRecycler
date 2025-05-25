@@ -1,6 +1,10 @@
 #region Header
 
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 #endregion
 
@@ -11,6 +15,8 @@
 
 
 using KC.Crawler;
+
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 
@@ -34,13 +40,14 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Main entry point to process blog URLs from the frontier.
     ///     Dequeues URLs and orchestrates the parsing of each blog's archive.
     /// </summary>
     internal static async Task StartBulkParsingAsync(MiniFrontier frontier,
         IPage page,
-        ScraperSettings settings,
+        Scraping settings,
         DownloaderModule downloader)
     {
         // --- Parameter Validation ---
@@ -53,13 +60,13 @@ public static class VideoLinkExtractor
 
 
         // variable used to limit processing for debugging.
-        int temp = 0;
+        var temp = 0;
 
 
         // --- Main Loop: Process URLs from Frontier ---
         while (frontier.Count() > 0)
         {
-            if (frontier.TryDequeue(out Uri? blogUrl) && blogUrl != null)
+            if (frontier.TryDequeue(out var blogUrl) && blogUrl != null)
             {
                 await ProcessSingleBlogAsync(blogUrl, ScraperLogger, page, settings, downloader);
             }
@@ -87,6 +94,7 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Processes a single blog URL by navigating to its archive page, extracting video links, and enqueuing them for
     ///     download.
@@ -98,9 +106,9 @@ public static class VideoLinkExtractor
     /// <param name="downloader"></param>
     /// <returns></returns>
     public static async Task ProcessSingleBlogAsync(Uri blogUrl, ILogger scraperLogger, IPage page,
-        ScraperSettings settings, DownloaderModule downloader)
+        Scraping settings, DownloaderModule downloader)
     {
-        string? sBlogArchiveUrl = string.Empty;
+        var sBlogArchiveUrl = string.Empty;
 
         try
         {
@@ -117,7 +125,7 @@ public static class VideoLinkExtractor
             }
 
             // --- Parse Archive Pages and Collect Video Page Links ---
-            HashSet<string>? videoPageLinks =
+            var videoPageLinks =
                 await ParseBlogArchivePagesAsync(blogUrl, sBlogArchiveUrl, scraperLogger, page, settings);
 
             // --- Process Extracted Video Page Links ---
@@ -131,6 +139,7 @@ public static class VideoLinkExtractor
                 blogUrl, sBlogArchiveUrl);
         }
     }
+
 
 
 
@@ -200,6 +209,7 @@ public static class VideoLinkExtractor
 
 
 
+
     // Define the handler separately for clarity and reusability
     private static async void Page_Request_BlockImages(object? sender, RequestEventArgs e)
     {
@@ -223,17 +233,18 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Parses through the paginated archive of a blog, extracting links to individual video pages.
     /// </summary>
     /// <returns>A HashSet containing all unique video page links found.</returns>
     internal static async Task<HashSet<string>> ParseBlogArchivePagesAsync(Uri blogUrl, string currentArchiveUrl,
-        ILogger scraperLogger, IPage page, ScraperSettings settings)
+        ILogger scraperLogger, IPage page, Scraping settings)
     {
         HashSet<string> allVideoPageLinks = new();
-        int pageNum = 1;
-        bool nextPageAvailable = true;
-        string? currentPageUrl = currentArchiveUrl; // Track the current URL for logging
+        var pageNum = 1;
+        var nextPageAvailable = true;
+        var currentPageUrl = currentArchiveUrl; // Track the current URL for logging
 
         ArgumentNullException.ThrowIfNull(blogUrl);
         ArgumentNullException.ThrowIfNull(scraperLogger);
@@ -282,11 +293,12 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Extracts video page links from the *currently loaded* archive page and adds them to the provided set.
     /// </summary>
     private static async Task ExtractVideoPageLinksFromCurrentPageAsync(IPage page,
-        ScraperSettings settings, Uri blogUrl, int pageNum, HashSet<string> videoPageLinks)
+        Scraping settings, Uri blogUrl, int pageNum, HashSet<string> videoPageLinks)
     {
         IElementHandle[]? nodes = null;
 
@@ -305,14 +317,14 @@ public static class VideoLinkExtractor
             ScraperLogger.LogDebug("Found {NodeCount} potential video page links on page {PageNum}.", nodes.Length,
                 pageNum);
 
-            foreach (IElementHandle? nodeHandle in nodes)
+            foreach (var nodeHandle in nodes)
             {
                 IJSHandle? hrefHandle = null;
 
                 try
                 {
                     hrefHandle = await nodeHandle.GetPropertyAsync(settings.TargetPropertySelector);
-                    string? link = await hrefHandle?.JsonValueAsync<string>()!;
+                    var link = await hrefHandle?.JsonValueAsync<string>()!;
 
                     if (!string.IsNullOrWhiteSpace(link))
                     {
@@ -358,7 +370,7 @@ public static class VideoLinkExtractor
             // Dispose the array of handles
             if (nodes != null)
             {
-                foreach (IElementHandle? node in nodes)
+                foreach (var node in nodes)
                 {
                     await node.DisposeAsync();
                 }
@@ -371,12 +383,13 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Finds the 'next' pagination link, clicks it, and waits for navigation.
     /// </summary>
     /// <returns>A record indicating success (true if navigation occurred, false otherwise).</returns>
     private static async Task<(bool Success, string? NextPageUrl)> HandleArchivePaginationAsync(IPage page,
-        ScraperSettings settings,
+        Scraping settings,
         Uri blogUrl,
         int currentPageNum)
     {
@@ -441,13 +454,14 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Iterates through collected video page links, navigates to each, extracts the video source URL, and enqueues it.
     /// </summary>
     private static async Task ProcessVideoPageLinksAsync(HashSet<string> videoPageLinks,
         Uri blogUrl,
         IPage page,
-        ScraperSettings settings,
+        Scraping settings,
         DownloaderModule downloader)
     {
         if (!videoPageLinks.Any())
@@ -459,10 +473,10 @@ public static class VideoLinkExtractor
 
         ScraperLogger.LogInformation("Found {Count} video page links for blog {BlogUrl}. Processing each...",
             videoPageLinks.Count, blogUrl);
-        int processedCount = 0;
-        int failedCount = 0;
+        var processedCount = 0;
+        var failedCount = 0;
 
-        foreach (string link in videoPageLinks)
+        foreach (var link in videoPageLinks)
         {
             try
             {
@@ -478,7 +492,7 @@ public static class VideoLinkExtractor
                 }
 
                 // Extract the direct video source URL
-                string? videoSrcUrl = await ExtractVideoSourceUrlFromPageAsync(page, settings, link);
+                var videoSrcUrl = await ExtractVideoSourceUrlFromPageAsync(page, settings, link);
 
                 // Enqueue the video source URL if found
                 if (!string.IsNullOrWhiteSpace(videoSrcUrl))
@@ -527,12 +541,13 @@ public static class VideoLinkExtractor
 
 
 
+
     /// <summary>
     ///     Extracts the direct video source URL (e.g., from a <video> tag's src) from the *currently loaded* page.
     /// </summary>
     /// <returns>The video source URL string, or null if not found or an error occurs.</returns>
     private static async Task<string?> ExtractVideoSourceUrlFromPageAsync(IPage page,
-        ScraperSettings settings, string videoPageLink)
+        Scraping settings, string videoPageLink)
     {
         IElementHandle? videoElementHandle = null;
         IJSHandle? srcHandle = null;
@@ -559,7 +574,7 @@ public static class VideoLinkExtractor
                 return null;
             }
 
-            string? videoSrcUrl = await srcHandle.JsonValueAsync<string>();
+            var videoSrcUrl = await srcHandle.JsonValueAsync<string>();
 
             if (string.IsNullOrWhiteSpace(videoSrcUrl))
             {
@@ -597,8 +612,9 @@ public static class VideoLinkExtractor
 
 
 
+
     public static async Task StartSingleArchiveAsync(string startUrl, IPage page,
-        ScraperSettings scraperSettings, DownloaderModule downloader)
+        Scraping scraperSettings, DownloaderModule downloader)
     {
 
 

@@ -1,6 +1,10 @@
 #region Header
 
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 #endregion
 
@@ -13,6 +17,7 @@
 using System.ComponentModel;
 
 using MediaRecycler.Modules;
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -25,20 +30,21 @@ namespace MediaRecycler;
 public partial class MainForm : Form
 {
 
-    private readonly DownloaderSettings _downloaderSettings;
+    private readonly DownloaderOptions _downloaderSettings;
     private readonly MiniFrontierSettings _frontierSettings;
-    private readonly LauncherSettings _launcherSettings;
+    private readonly HeadlessBrowserOptions _launcherSettings;
 
 
-    private readonly ScraperSettings _scraperSettings;
-
-
-
+    private readonly Scraping _scraperSettings;
 
 
 
-    public MainForm(IOptionsMonitor<ScraperSettings> scraperSettings,
-        IOptionsMonitor<LauncherSettings> launcherSettings, IOptionsMonitor<DownloaderSettings> downloaderSettings,
+
+
+
+
+    public MainForm(IOptionsMonitor<Scraping> scraperSettings,
+        IOptionsMonitor<HeadlessBrowserOptions> launcherSettings, IOptionsMonitor<DownloaderOptions> downloaderSettings,
         ILogger logger)
     {
         InitializeComponent();
@@ -58,10 +64,12 @@ public partial class MainForm : Form
 
 
 
+
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public static ILogger Logger { get; set; }
 
     public RichTextBox MainLogRichTextBox => rtb_main;
+
 
 
 
@@ -88,6 +96,7 @@ public partial class MainForm : Form
 
 
 
+
     // Fix for CS1061: 'ToolStripStatusLabel' does not contain a definition for 'InvokeRequired'.
     // Explanation: ToolStripStatusLabel does not inherit from Control, so it does not have the InvokeRequired property.
     // Instead, you should check the InvokeRequired property of the parent control (e.g., the Form or StatusStrip).
@@ -102,6 +111,7 @@ public partial class MainForm : Form
             tsl_status.Text = text;
         }
     }
+
 
 
 
@@ -128,10 +138,12 @@ public partial class MainForm : Form
 
 
 
+
     private void Button1_Click(object sender, EventArgs e)
     {
         Logger?.LogInformation("Button 1 clicked.");
     }
+
 
 
 
@@ -144,11 +156,12 @@ public partial class MainForm : Form
 
 
 
-        for (int x = 0; x < 10; x++)
+        for (var x = 0; x < 10; x++)
         {
             AppendToMainViewer("Testing " + x);
         }
     }
+
 
 
 
@@ -171,6 +184,7 @@ public partial class MainForm : Form
 
 
 
+
     private void scraperSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         //Menu Click ScraperSettings > Form opening
@@ -186,11 +200,12 @@ public partial class MainForm : Form
 
 
 
+
     private async void btn_GetPage_Click(object sender, EventArgs e)
     {
         // Create a new instance of the Scrapers class
 
-        Scrapers scrapersobj =
+        var scrapersobj =
             await Scrapers.CreateAsync(_launcherSettings, _scraperSettings, _downloaderSettings, Logger);
 
         try
@@ -202,8 +217,8 @@ public partial class MainForm : Form
             Logger?.LogError(ex, "Error initializing scrapers: {Message}", ex.Message);
             AppendToMainViewer("Error initializing scrapers: " + ex.Message);
 
-            MessageBox.Show("Error initializing scrapers: " + ex.Message, "Error", MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+
+
         }
 
     }

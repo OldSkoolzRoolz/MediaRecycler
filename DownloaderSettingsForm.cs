@@ -1,6 +1,10 @@
 ﻿#region Header
 
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 #endregion
 
@@ -14,7 +18,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Text.Json;
 
-using MediaRecycler.Modules;
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 
@@ -31,10 +35,11 @@ public partial class DownloaderSettingsForm : Form
         "MediaRecycler", "downloader_settings.json");
 
     private readonly BindingSource bindingSource = new();
-    private readonly DownloaderSettings settings = new();
+    private readonly DownloaderOptions settings = new();
 
     // ErrorProvider for validation feedback
     private ErrorProvider? _errorProvider;
+
 
 
 
@@ -82,6 +87,7 @@ public partial class DownloaderSettingsForm : Form
 
 
 
+
     // Helper property for binding TimeSpan as seconds
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
     public double RetryDelaySeconds
@@ -110,6 +116,7 @@ public partial class DownloaderSettingsForm : Form
 
 
 
+
     private void DownloaderSettings_Load(object? sender, EventArgs e)
     {
         LoadSettings();
@@ -126,10 +133,12 @@ public partial class DownloaderSettingsForm : Form
 
 
 
+
     private void DownloaderSettings_FormClosing(object? sender, FormClosingEventArgs e)
     {
         SaveSettings();
     }
+
 
 
 
@@ -142,8 +151,8 @@ public partial class DownloaderSettingsForm : Form
         {
             if (File.Exists(SettingsFilePath))
             {
-                string? json = File.ReadAllText(SettingsFilePath);
-                DownloaderSettings? loaded = JsonSerializer.Deserialize<DownloaderSettings>(json);
+                var json = File.ReadAllText(SettingsFilePath);
+                var loaded = JsonSerializer.Deserialize<DownloaderOptions>(json);
 
                 if (loaded != null)
                 {
@@ -171,20 +180,21 @@ public partial class DownloaderSettingsForm : Form
 
 
 
+
     private void SaveSettings()
     {
         MainForm.Logger?.LogInformation("Saving settings...");
 
         try
         {
-            string? dir = Path.GetDirectoryName(SettingsFilePath);
+            var dir = Path.GetDirectoryName(SettingsFilePath);
 
             if (!Directory.Exists(dir))
             {
                 Directory.CreateDirectory(dir!);
             }
 
-            string json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
             MainForm.Logger?.LogInformation("Settings saved successfully to path:{path}", SettingsFilePath);
         }
@@ -209,12 +219,13 @@ public partial class DownloaderSettingsForm : Form
 
 
 
+
     // Integer validation
     private void ValidateIntTextBox(object? sender, CancelEventArgs e)
     {
         if (sender is TextBox tb)
         {
-            if (!int.TryParse(tb.Text, out int val) || val < 0)
+            if (!int.TryParse(tb.Text, out var val) || val < 0)
             {
                 e.Cancel = true;
                 errorProvider1.SetError(tb, "Please enter a valid non-negative integer.");
@@ -231,12 +242,13 @@ public partial class DownloaderSettingsForm : Form
 
 
 
+
     // Double (seconds) validation for TimeSpan
     private void ValidateDoubleTextBox(object? sender, CancelEventArgs e)
     {
         if (sender is TextBox tb)
         {
-            if (!double.TryParse(tb.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double val) || val < 0)
+            if (!double.TryParse(tb.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out var val) || val < 0)
             {
                 e.Cancel = true;
                 errorProvider1.SetError(tb, "Please enter a valid non-negative number (seconds).");
@@ -247,6 +259,7 @@ public partial class DownloaderSettingsForm : Form
             }
         }
     }
+
 
 
 

@@ -1,5 +1,16 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+#region Header
 
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
+
+#endregion
+
+
+
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -7,6 +18,8 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.Json;
+
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -36,7 +49,7 @@ public class DownloaderModule : IAsyncDisposable
     private readonly AsyncRetryPolicy _retryPolicy;
 
     // --- Private State ---
-    private readonly DownloaderSettings _settings;
+    private readonly DownloaderOptions _settings;
 
     private readonly ConcurrentDictionary<Uri, DownloadAttemptInfo>
         _urlStates; // Tracks URLs and their attempt count, ensures uniqueness
@@ -54,8 +67,9 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // --- Constructor ---
-    public DownloaderModule(DownloaderSettings settings, ILogger? logger = null)
+    public DownloaderModule(DownloaderOptions settings, ILogger? logger = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _logger = logger ?? NullLogger.Instance;
@@ -110,13 +124,13 @@ public class DownloaderModule : IAsyncDisposable
                 _settings.MaxRetries,
                 retryAttempt =>
                 {
-                    TimeSpan delay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
-                    TimeSpan jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
+                    var delay = TimeSpan.FromSeconds(Math.Pow(2, retryAttempt));
+                    var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
                     return delay + jitter;
                 },
                 async (exception, timespan, retryAttempt, context) =>
                 {
-                    Uri? url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
+                    var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
                     _logger.LogWarning(exception,
                         "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
                         retryAttempt, _settings.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
@@ -146,7 +160,9 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // --- IAsyncDisposable ---
+
 
 
 
@@ -206,9 +222,10 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     private static string GetSafeFileName(Uri url)
     {
-        string? fileName = Path.GetFileName(url.AbsolutePath);
+        var fileName = Path.GetFileName(url.AbsolutePath);
 
         if (string.IsNullOrWhiteSpace(fileName))
         {
@@ -218,9 +235,10 @@ public class DownloaderModule : IAsyncDisposable
         fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
 
         // Add a hash to avoid collisions
-        string? hash = url.GetHashCode().ToString("X8");
+        var hash = url.GetHashCode().ToString("X8");
         return $"{fileName}_{hash}";
     }
+
 
 
 
@@ -235,25 +253,27 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     private async Task PerformDownloadCoreAsync(Uri url, CancellationToken cancellationToken)
     {
         // _settings.DownloadPath is already validated in the constructor, so no need for [MemberNotNull].
-        string fileName = GetSafeFileName(url);
+        var fileName = GetSafeFileName(url);
 #pragma warning disable CS8604 // Possible null reference argument.
-        string filePath = Path.Combine(_settings.DownloadPath, fileName);
+        var filePath = Path.Combine(_settings.DownloadPath, fileName);
 #pragma warning restore CS8604 // Possible null reference argument.
 
-        using HttpResponseMessage response = await _httpClient
+        using var response = await _httpClient
             .GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
         _ = response.EnsureSuccessStatusCode();
 
-        using Stream contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         using FileStream fileStream = new(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true);
 
         await contentStream.CopyToAsync(fileStream, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Saved {Url} to {FilePath}", url, filePath);
     }
+
 
 
 
@@ -269,12 +289,12 @@ public class DownloaderModule : IAsyncDisposable
             return false;
         }
 
-        int statusCode = (int)ex.StatusCode;
+        var statusCode = (int)ex.StatusCode;
 
         // Retry on 5xx server errors, 408 Timeout, 429 Too Many Requests
-        return statusCode is (>= 500 and <= 599) or
-               ((int)HttpStatusCode.RequestTimeout) or // 408
-               ((int)HttpStatusCode.TooManyRequests); // 429
+        return statusCode is >= 500 and <= 599 or
+            (int)HttpStatusCode.RequestTimeout or // 408
+            (int)HttpStatusCode.TooManyRequests; // 429
 
         // Explicitly DO NOT retry on other 4xx client errors like 404 Not Found, 401 Unauthorized, etc.
     }
@@ -284,7 +304,9 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // --- Public Methods ---
+
 
 
 
@@ -317,6 +339,7 @@ public class DownloaderModule : IAsyncDisposable
         _logger.LogTrace("URL already in queue or processed: {Url}", url);
         return false; // Already exists
     }
+
 
 
 
@@ -366,9 +389,9 @@ public class DownloaderModule : IAsyncDisposable
 
         // Start worker tasks
         // Let exceptions propagate if task creation fails. The caller of Start should handle this.
-        for (int i = 0; i < _settings.MaxConcurrency; i++)
+        for (var i = 0; i < _settings.MaxConcurrency; i++)
         {
-            Task? workerTask = Task.Run(() => ProcessWorkQueueAsync(_processingCts.Token), _processingCts.Token);
+            var workerTask = Task.Run(() => ProcessWorkQueueAsync(_processingCts.Token), _processingCts.Token);
             _workerTasks.Add(workerTask);
         }
 
@@ -377,6 +400,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
     }
+
 
 
 
@@ -432,7 +456,7 @@ public class DownloaderModule : IAsyncDisposable
             // AggregateException might be caught here if multiple tasks failed
             if (ex is AggregateException aggEx)
             {
-                foreach (Exception? innerEx in aggEx.Flatten().InnerExceptions)
+                foreach (var innerEx in aggEx.Flatten().InnerExceptions)
                 {
                     _logger.LogError(innerEx, "Inner exception from worker task.");
                 }
@@ -451,6 +475,7 @@ public class DownloaderModule : IAsyncDisposable
 
         _logger.LogInformation("Downloader Module stopped.");
     }
+
 
 
 
@@ -478,6 +503,7 @@ public class DownloaderModule : IAsyncDisposable
         _logger.LogInformation("Signaling that no more URLs will be added to the download queue.");
         _workQueue.CompleteAdding();
     }
+
 
 
 
@@ -512,7 +538,9 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // --- Core Processing Logic ---
+
 
 
 
@@ -525,7 +553,7 @@ public class DownloaderModule : IAsyncDisposable
 
         try
         {
-            foreach (Uri? url in _workQueue.GetConsumingEnumerable(cancellationToken))
+            foreach (var url in _workQueue.GetConsumingEnumerable(cancellationToken))
             {
                 await _concurrencySemaphore.WaitAsync(cancellationToken).ConfigureAwait(false);
                 _logger.LogTrace("Concurrency slot acquired for {Url}", url);
@@ -564,6 +592,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     /// </summary>
     /// <param name="url"></param>
@@ -577,7 +606,7 @@ public class DownloaderModule : IAsyncDisposable
             return;
         }
 
-        bool success = false;
+        var success = false;
         Context pollyContext = new($"Download-{url}") { ["Url"] = url };
 
         try
@@ -606,7 +635,7 @@ public class DownloaderModule : IAsyncDisposable
             _logger.LogInformation("Error during download attempt: {ErrorMessage}", ex);
 
             // Increment consecutive failures on error
-            bool abort = false;
+            var abort = false;
 
             lock (_failureLock)
             {
@@ -632,6 +661,7 @@ public class DownloaderModule : IAsyncDisposable
                 url);
         }
     }
+
 
 
 
@@ -665,13 +695,14 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // Placeholder for network monitoring - requires careful implementation
     private async Task CheckNetworkConditionAsync(CancellationToken cancellationToken)
     {
         // Basic check example (ping) - requires System.Net.NetworkInformation
         // This can be unreliable (ICMP blocked) and synchronous.
         // A better check might involve trying a HEAD request to a known reliable server.
-        bool networkAvailable = NetworkInterface.GetIsNetworkAvailable(); // Quick OS check
+        var networkAvailable = NetworkInterface.GetIsNetworkAvailable(); // Quick OS check
 
         if (!networkAvailable)
         {
@@ -684,14 +715,14 @@ public class DownloaderModule : IAsyncDisposable
         try
         {
             using HttpRequestMessage request = new(HttpMethod.Head, "https://www.google.com"); // Or configurable host
-            using CancellationTokenSource cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             cts.CancelAfter(TimeSpan.FromSeconds(5)); // Timeout for the check
 
             _ = await _httpClient.SendAsync(request, cts.Token).ConfigureAwait(false);
             _logger.LogTrace("Network condition check: HEAD request successful.");
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or
-                                   OperationCanceledException)
+                                       OperationCanceledException)
         {
             _logger.LogWarning(ex, "Network condition check failed (HEAD request). Potential network issue.");
             AbortProcessing("Network check failed.");
@@ -703,7 +734,9 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // --- Persistence ---
+
 
 
 
@@ -721,17 +754,17 @@ public class DownloaderModule : IAsyncDisposable
         try
         {
             _logger.LogInformation("Loading queue state from {QueuePath}...", _queueFilePath);
-            string json = File.ReadAllText(_queueFilePath);
-            List<string>? urlsToLoad = JsonSerializer.Deserialize<List<string>>(json);
+            var json = File.ReadAllText(_queueFilePath);
+            var urlsToLoad = JsonSerializer.Deserialize<List<string>>(json);
 
             if (urlsToLoad != null)
             {
-                int loadedCount = 0;
-                int skippedCount = 0;
+                var loadedCount = 0;
+                var skippedCount = 0;
 
-                foreach (string urlString in urlsToLoad)
+                foreach (var urlString in urlsToLoad)
                 {
-                    if (Uri.TryCreate(urlString, UriKind.Absolute, out Uri? uri))
+                    if (Uri.TryCreate(urlString, UriKind.Absolute, out var uri))
                     {
                         // Use EnqueueUrl logic to add to both state and work queue if new
                         if (_urlStates.TryAdd(uri, new DownloadAttemptInfo(uri)))
@@ -779,6 +812,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Saves the current state of the download queue to a file.
     /// </summary>
@@ -789,7 +823,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
         // Get URLs currently being tracked (not yet successfully downloaded or failed max retries)
-        List<string> urlsToSave = _urlStates.Keys.Select(uri => uri.ToString()).ToList();
+        var urlsToSave = _urlStates.Keys.Select(uri => uri.ToString()).ToList();
 
         if (!urlsToSave.Any())
         {
@@ -804,7 +838,7 @@ public class DownloaderModule : IAsyncDisposable
         try
         {
             _logger.LogDebug("Saving {UrlCount} pending URLs to {QueuePath}...", urlsToSave.Count, _queueFilePath);
-            string json = JsonSerializer.Serialize(urlsToSave, new JsonSerializerOptions { WriteIndented = true });
+            var json = JsonSerializer.Serialize(urlsToSave, new JsonSerializerOptions { WriteIndented = true });
 
             //TODO: Should we try and merge any new URLs into the existing file?
             // Write asynchronously
@@ -827,7 +861,8 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
-    public static async Task<DownloaderModule> CreateAsync(DownloaderSettings settings, ILogger? logger = null)
+
+    public static async Task<DownloaderModule> CreateAsync(DownloaderOptions settings, ILogger? logger = null)
     {
         DownloaderModule module = new(settings, logger);
         await module.LoadQueueFromFileAsync();
@@ -839,7 +874,9 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // Add the missing method 'LoadQueueFromFileAsync' to the DownloaderModule class.
+
 
 
 
@@ -857,17 +894,17 @@ public class DownloaderModule : IAsyncDisposable
         try
         {
             _logger.LogInformation("Loading queue state from {QueuePath}...", _queueFilePath);
-            string json = await File.ReadAllTextAsync(_queueFilePath);
-            List<string>? urlsToLoad = JsonSerializer.Deserialize<List<string>>(json);
+            var json = await File.ReadAllTextAsync(_queueFilePath);
+            var urlsToLoad = JsonSerializer.Deserialize<List<string>>(json);
 
             if (urlsToLoad != null)
             {
-                int loadedCount = 0;
-                int skippedCount = 0;
+                var loadedCount = 0;
+                var skippedCount = 0;
 
-                foreach (string urlString in urlsToLoad)
+                foreach (var urlString in urlsToLoad)
                 {
-                    if (Uri.TryCreate(urlString, UriKind.Absolute, out Uri? uri))
+                    if (Uri.TryCreate(urlString, UriKind.Absolute, out var uri))
                     {
                         // Use EnqueueUrl logic to add to both state and work queue if new
                         if (_urlStates.TryAdd(uri, new DownloadAttemptInfo(uri)))
@@ -915,6 +952,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     // --- Helper Class for State ---
     private class DownloadAttemptInfo
     {
@@ -923,6 +961,7 @@ public class DownloaderModule : IAsyncDisposable
         {
             Url = url;
         }
+
 
 
 

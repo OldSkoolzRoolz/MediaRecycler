@@ -1,18 +1,16 @@
 #region Header
 
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 #endregion
 
 
 
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
-
-
-
-// Added for NullLogger
-
-
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 
@@ -32,7 +30,8 @@ public class PuppetBrowserBase : IAsyncDisposable
 
     protected readonly ILogger _browserLogger;
     private bool _disposed; // To detect redundant calls
-    protected LauncherSettings _launchOptions = new();
+    protected HeadlessBrowserOptions _launchOptions = new();
+
 
 
 
@@ -50,6 +49,7 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Gets the managed Puppeteer Browser instance.
     ///     Null if not initialized or after disposal.
@@ -58,6 +58,7 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
     // --- IAsyncDisposable Implementation (Standard Pattern) ---
+
 
 
 
@@ -80,12 +81,13 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Initializes the Puppeteer browser instance asynchronously.
     ///     If the browser is already initialized, this method will return without creating a new instance.
     /// </summary>
     /// <exception cref="Exception">Propagates exceptions from PuppeteerSharp during browser launch.</exception>
-    public virtual async Task InitializeAsync(LauncherSettings launchOptions)
+    public virtual async Task InitializeAsync(HeadlessBrowserOptions launchOptions)
     {
         _launchOptions = launchOptions;
 
@@ -153,6 +155,7 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Placeholder method intended for setting up network monitoring.
     ///     This base implementation throws NotImplementedException.
@@ -167,6 +170,7 @@ public class PuppetBrowserBase : IAsyncDisposable
         // Keep or remove based on actual need. If keeping, derived classes should override.
         // throw new NotImplementedException("Network monitoring setup is not implemented.");
     }
+
 
 
 
@@ -220,6 +224,7 @@ public class PuppetBrowserBase : IAsyncDisposable
             _browserLogger.LogDebug("DisposeAsync called on an already disposed instance.");
         }
     }
+
 
 
 

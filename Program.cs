@@ -1,6 +1,10 @@
 #region Header
 
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 #endregion
 
@@ -11,6 +15,7 @@
 
 
 using MediaRecycler.Modules;
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,6 +39,7 @@ internal static class Program
 
 
 
+
     /// <summary>
     ///     The main entry point for the application.
     /// </summary>
@@ -42,7 +48,7 @@ internal static class Program
     {
         Application.SetCompatibleTextRenderingDefault(false);
 
-        HostApplicationBuilder builder = Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder();
 
         builder.Configuration.SetBasePath(AppContext.BaseDirectory);
         builder.Configuration
@@ -52,12 +58,12 @@ internal static class Program
                 true)
             .AddEnvironmentVariables();
 
-        builder.Services.Configure<ScraperSettings>(builder.Configuration.GetSection(nameof(ScraperSettings)));
-        builder.Services.Configure<LauncherSettings>(builder.Configuration.GetSection(nameof(LauncherSettings)));
+        builder.Services.Configure<Scraping>(builder.Configuration.GetSection(nameof(Scraping)));
+        builder.Services.Configure<HeadlessBrowserOptions>(
+            builder.Configuration.GetSection(nameof(HeadlessBrowserOptions)));
         builder.Services.Configure<MiniFrontierSettings>(
             builder.Configuration.GetSection(nameof(MiniFrontierSettings)));
-        builder.Services.Configure<DownloaderSettingsForm>(
-            builder.Configuration.GetSection(nameof(DownloaderSettingsForm)));
+        builder.Services.Configure<DownloaderOptions>(builder.Configuration.GetSection(nameof(DownloaderOptions)));
 
 
         builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
@@ -69,19 +75,19 @@ internal static class Program
         });
 
         serviceProvider = builder.Services.BuildServiceProvider();
-        IServiceScope scope = serviceProvider.CreateScope();
+        var scope = serviceProvider.CreateScope();
 
         Logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("MediaRecycler");
 
         MainForm mainform = new(
-            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<ScraperSettings>>(),
-            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<LauncherSettings>>(),
-            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<DownloaderSettings>>(),
+            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<Scraping>>(),
+            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<HeadlessBrowserOptions>>(),
+            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<DownloaderOptions>>(),
             Logger);
 
         Logger.LogDebug("MainForm created successfully.");
 
-        ILoggerFactory factory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var factory = serviceProvider.GetRequiredService<ILoggerFactory>();
         factory.AddProvider(new ControlLoggerProvider(mainform.MainLogRichTextBox, LogLevel.Trace));
 
         Logger.LogDebug("ControlLoggerProvider added successfully.");
