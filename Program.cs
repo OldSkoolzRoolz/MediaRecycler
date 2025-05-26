@@ -1,16 +1,9 @@
-#region Header
-
 // Project Name: MediaRecycler
 // Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
 // Distributed under Open Source License
 // Do not remove file headers
 
-#endregion
-
-
-
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -19,9 +12,7 @@ using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 
 
@@ -31,8 +22,7 @@ namespace MediaRecycler;
 internal static class Program
 {
 
-    public static IServiceProvider serviceProvider { get; private set; } = null!;
-    public static ILogger Logger { get; private set; } = null!;
+    public static ILogger Logger { get; private set; }
 
 
 
@@ -47,57 +37,54 @@ internal static class Program
     private static void Main()
     {
         Application.SetCompatibleTextRenderingDefault(false);
+        Application.EnableVisualStyles();
+        Application.SetHighDpiMode(HighDpiMode.SystemAware);
+        var configuration = new ConfigurationBuilder()
+                    .SetBasePath(AppContext.BaseDirectory)
+                    .AddJsonFile("appsettings.json", false, true)
+                    .AddJsonFile(
+                                $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json",
+                                true)
+                    .AddEnvironmentVariables()
+                    .Build();
 
-        var builder = Host.CreateApplicationBuilder();
-
-        builder.Configuration.SetBasePath(AppContext.BaseDirectory);
-        builder.Configuration
-            .AddJsonFile("appsettings.json", false, true)
-            .AddJsonFile(
-                $"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json",
-                true)
-            .AddEnvironmentVariables();
-
-        builder.Services.Configure<Scraping>(builder.Configuration.GetSection(nameof(Scraping)));
-        builder.Services.Configure<HeadlessBrowserOptions>(
-            builder.Configuration.GetSection(nameof(HeadlessBrowserOptions)));
-        builder.Services.Configure<MiniFrontierSettings>(
-            builder.Configuration.GetSection(nameof(MiniFrontierSettings)));
-        builder.Services.Configure<DownloaderOptions>(builder.Configuration.GetSection(nameof(DownloaderOptions)));
-
-
-        builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
-        builder.Services.AddLogging(logBuilder =>
+        var services = new ServiceCollection();
+        services.Configure<Scraping>(configuration.GetSection("Scraping"));
+        services.Configure<HeadlessBrowserOptions>(configuration.GetSection(nameof(HeadlessBrowserOptions)));
+        services.Configure<MiniFrontierSettings>(configuration.GetSection(nameof(MiniFrontierSettings)));
+        services.Configure<DownloaderOptions>(configuration.GetSection(nameof(DownloaderOptions)));
+        services.AddLogging(logBuilder =>
         {
             logBuilder.AddConsole();
             logBuilder.AddDebug();
-            logBuilder.AddProvider(new FileLoggerProvider("app.log", LogLevel.Trace));
+            logBuilder.AddProvider(new FileLoggerProvider("logs/app.log", LogLevel.Trace));
         });
+        services.AddTransient<MainForm>();
 
-        serviceProvider = builder.Services.BuildServiceProvider();
-        var scope = serviceProvider.CreateScope();
+        /*     services.AddSingleton<ILoggerProvider>(serviceProvider =>
+             {
+                 var resolvedMainForm = serviceProvider.GetRequiredService<MainForm>();
+                 return new ControlLoggerProvider(resolvedMainForm.MainLogRichTextBox, LogLevel.Trace);
+             });
+        */
 
-        Logger = serviceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("MediaRecycler");
+        // Build the service provider
+        using var serviceProvider = services.BuildServiceProvider();
 
-        MainForm mainform = new(
-            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<Scraping>>(),
-            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<HeadlessBrowserOptions>>(),
-            scope.ServiceProvider.GetRequiredService<IOptionsMonitor<DownloaderOptions>>(),
-            Logger);
+        // Resolve and run the main form
+        var mainFormInstance = serviceProvider.GetRequiredService<MainForm>();
 
-        Logger.LogDebug("MainForm created successfully.");
-
-        var factory = serviceProvider.GetRequiredService<ILoggerFactory>();
-        factory.AddProvider(new ControlLoggerProvider(mainform.MainLogRichTextBox, LogLevel.Trace));
-
-        Logger.LogDebug("ControlLoggerProvider added successfully.");
-
-        Application.SetHighDpiMode(HighDpiMode.SystemAware);
-        Application.EnableVisualStyles();
-
-
-        Application.Run(mainform);
-
+        try
+        {
+            Logger = serviceProvider.GetRequiredService<ILogger<MainForm>>();
+            Logger.LogInformation("Application Starting");
+            Application.Run(mainFormInstance);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            Application.Exit();
+        }
     }
 
 }

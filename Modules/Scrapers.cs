@@ -1,16 +1,13 @@
-#region Header
-
 // Project Name: MediaRecycler
 // Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
 // Distributed under Open Source License
 // Do not remove file headers
 
-#endregion
-
 
 
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
 
 
 
@@ -58,11 +55,11 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
     ///     Use <see cref="CreateAsync" /> for instantiation.
     /// </summary>
     private Scrapers(
-        HeadlessBrowserOptions browserOptions,
-        Scraping scraperOptions,
-        DownloaderOptions downloaderOptions,
-        ILogger logger)
-        : base(logger)
+                HeadlessBrowserOptions browserOptions,
+                Scraping scraperOptions,
+                DownloaderOptions downloaderOptions,
+                ILogger logger)
+                : base(logger)
     {
         _browserOptions = browserOptions ??
                           throw new ArgumentNullException(nameof(browserOptions), "Browser options cannot be null.");
@@ -70,7 +67,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
                           throw new ArgumentNullException(nameof(scraperOptions), "Scraper options cannot be null.");
         _downloaderOptions = downloaderOptions ??
                              throw new ArgumentNullException(nameof(downloaderOptions),
-                                 "Downloader options cannot be null.");
+                                         "Downloader options cannot be null.");
         _scraperLogger = logger ?? throw new ArgumentNullException(nameof(logger), "Logger cannot be null.");
 
         _startUrl = scraperOptions.StartingWebPage ??
@@ -93,37 +90,13 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
     /// <summary>
-    ///     Disposes resources used by the Scrapers instance.
-    /// </summary>
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (Frontier != null)
-        {
-            Frontier.StatusUpdate -= Frontier_StatusUpdate;
-        }
-
-        await base.DisposeAsync();
-        _disposed = true;
-    }
-
-
-
-
-
-
-
-    /// <summary>
     ///     Asynchronously creates and initializes a <see cref="Scrapers" /> instance.
     /// </summary>
-    public static async Task<Scrapers> CreateAsync(HeadlessBrowserOptions launcher,
-        Scraping scraperSettings,
-        DownloaderOptions downloaderSettings,
-        ILogger logger)
+    public static async Task<Scrapers> CreateAsync(
+                HeadlessBrowserOptions launcher,
+                Scraping scraperSettings,
+                DownloaderOptions downloaderSettings,
+                ILogger logger)
     {
         /*var launchOptions = Program.serviceProvider.GetRequiredService<IOptionsMonitor<LauncherSettings>>();
         var scraperOptions = Program.serviceProvider.GetRequiredService<IOptionsMonitor<ScraperSettings>>();
@@ -206,7 +179,9 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
     /// <summary>
     ///     Handles status updates from the URL frontier.
     /// </summary>
-    private static void Frontier_StatusUpdate(object? sender, FrontierStatusEventArgs e)
+    private static void Frontier_StatusUpdate(
+                object? sender,
+                FrontierStatusEventArgs e)
     {
         Console.WriteLine($"[{e.TimestampUtc:HH:mm:ss.fff}][{e.EventType}] {e.Message}");
 
@@ -251,7 +226,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
             settings.StartDownloader = true;
 
             await VideoLinkExtractor.ProcessSingleBlogAsync(new Uri(_startUrl), _scraperLogger, Page, settings,
-                downloader);
+                        downloader);
 
             _scraperLogger.LogTrace("Enable Downloader Check: {StartDownloader}", settings.StartDownloader);
 
@@ -312,13 +287,13 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         _ = await Page.GoToAsync(_startUrl);
         _ = await Page.WaitForNavigationAsync(new NavigationOptions
         {
-            WaitUntil = new[] { WaitUntilNavigation.Networkidle0 }
+                    WaitUntil = new[] { WaitUntilNavigation.Networkidle0 }
         });
 
         await ScrapeArchivePageAsync(Page);
 
         _ = await Page.WaitForSelectorAsync("div.namefollowerholder a")
-            .WithTimeout(TimeSpan.FromSeconds(_scraperOptions.DefaultPuppeteerTimeout));
+                    .WithTimeout(TimeSpan.FromSeconds(_scraperOptions.DefaultPuppeteerTimeout));
         await Task.Delay(500);
 
         var pageNum = 1;
@@ -330,7 +305,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
             IElementHandle[]? nodes = await Page.QuerySelectorAllAsync("div.namefollowerholder");
             _scraperLogger.LogDebug("Found {NodeCount} potential blog entries on page {PageNum}.", nodes?.Length ?? 0,
-                pageNum);
+                        pageNum);
 
             if (nodes != null)
             {
@@ -391,14 +366,14 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
                         _startUrl = nextPageUrl;
                         _scraperLogger.LogInformation("Navigating to next page: {NextPageUrl}", _startUrl);
                         _ = await Page.GoToAsync(_startUrl,
-                            new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.Networkidle2 } });
+                                    new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.Networkidle2 } });
                         pageNum++;
                     }
                     else
                     {
                         _scraperLogger.LogInformation(
-                            "Next page link found but URL is invalid or same as current ({NextPageUrl}). Stopping pagination.",
-                            nextPageUrl);
+                                    "Next page link found but URL is invalid or same as current ({NextPageUrl}). Stopping pagination.",
+                                    nextPageUrl);
                         nextPage = false;
                     }
                 }
@@ -434,7 +409,9 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
     /// <summary>
     ///     Scrapes an archive page, optionally at a specific URL.
     /// </summary>
-    private async Task ScrapeArchivePageAsync(IPage page, string? archivePgUrl = null)
+    private async Task ScrapeArchivePageAsync(
+                IPage page,
+                string? archivePgUrl = null)
     {
         _scraperLogger.LogDebug("ScrapeArchivePage method being called.");
         ArgumentNullException.ThrowIfNull(page, nameof(page));
@@ -451,7 +428,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         else
         {
             _ = await page.GoToAsync(archivePgUrl,
-                new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.Networkidle2 } });
+                        new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.Networkidle2 } });
         }
     }
 
@@ -464,7 +441,8 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
     /// <summary>
     ///     Wraps the login logic in a task, handling exceptions and logging errors.
     /// </summary>
-    private Task DoLoginWrappedAsync(IPage page)
+    private Task DoLoginWrappedAsync(
+                IPage page)
     {
         try
         {
@@ -486,7 +464,8 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
     /// <summary>
     ///     Performs login on the target site using credentials from environment variables.
     /// </summary>
-    private static async Task DoLoginAsync(IPage page)
+    private static async Task DoLoginAsync(
+                IPage page)
     {
         _ = await page.GoToAsync("https://www.bdsmlr.com/login");
         await Task.Delay(5000);

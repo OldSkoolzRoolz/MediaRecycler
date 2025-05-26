@@ -650,7 +650,7 @@ public class DownloaderModule : IAsyncDisposable
 
             if (abort)
             {
-                AbortProcessing($"Exceeded max consecutive failures ({_settings.MaxConsecutiveFailures}).");
+                await AbortProcessingAsync($"Exceeded max consecutive failures ({_settings.MaxConsecutiveFailures}).");
             }
         }
 
@@ -673,12 +673,12 @@ public class DownloaderModule : IAsyncDisposable
     /// </summary>
     /// <example>If we receive too many errors or network failures, we will abort operations.</example>
     /// <param name="reason"></param>
-    private void AbortProcessing(string reason)
+    private async Task AbortProcessingAsync(string reason)
     {
         _logger.LogWarning("AbortProcessing called. Reason: {Reason}", reason);
 
         // Saving the queue state during abnormal shutdown
-        SaveQueueToFileAsync().Wait();
+        await SaveQueueToFileAsync();
 
         // Use the processing CTS to cancel current operations without affecting the master CTS
         if (_processingCts != null && !_processingCts.IsCancellationRequested)
@@ -707,7 +707,7 @@ public class DownloaderModule : IAsyncDisposable
         if (!networkAvailable)
         {
             _logger.LogWarning("Network condition check: NetworkInterface.GetIsNetworkAvailable() returned false.");
-            AbortProcessing("Network appears unavailable (OS check).");
+            await AbortProcessingAsync("Network appears unavailable (OS check).");
             return;
         }
 
@@ -725,7 +725,7 @@ public class DownloaderModule : IAsyncDisposable
                                        OperationCanceledException)
         {
             _logger.LogWarning(ex, "Network condition check failed (HEAD request). Potential network issue.");
-            AbortProcessing("Network check failed.");
+            await AbortProcessingAsync("Network check failed.");
         }
     }
 

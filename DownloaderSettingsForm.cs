@@ -156,7 +156,7 @@ public partial class DownloaderSettingsForm : Form
 
                 if (loaded != null)
                 {
-                    MainForm.Logger?.LogInformation("Settings loaded successfully from path:{path}", SettingsFilePath);
+                    Program.Logger?.LogInformation("Settings loaded successfully from path:{path}", SettingsFilePath);
 
                     // Copy loaded values to the current settings instance
                     settings.DownloadPath = loaded.DownloadPath;
@@ -183,7 +183,7 @@ public partial class DownloaderSettingsForm : Form
 
     private void SaveSettings()
     {
-        MainForm.Logger?.LogInformation("Saving settings...");
+        Program.Logger?.LogInformation("Saving settings...");
 
         try
         {
@@ -196,7 +196,7 @@ public partial class DownloaderSettingsForm : Form
 
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(SettingsFilePath, json);
-            MainForm.Logger?.LogInformation("Settings saved successfully to path:{path}", SettingsFilePath);
+            Program.Logger?.LogInformation("Settings saved successfully to path:{path}", SettingsFilePath);
         }
         catch (Exception ex)
         {
@@ -205,7 +205,7 @@ public partial class DownloaderSettingsForm : Form
 
             if (Application.OpenForms["MainForm"] is MainForm mainForm)
             {
-                MainForm.Logger?.LogError(ex, "Failed to save downloader settings.");
+                Program.Logger?.LogError(ex, "Failed to save downloader settings.");
                 mainForm.Invoke(() =>
                 {
                     mainForm.SetStatusLabelText("Failed to save settings: " + ex.Message);

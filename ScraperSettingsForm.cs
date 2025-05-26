@@ -1,12 +1,4 @@
-#region Header
-
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License
-// Do not remove file headers
-
-#endregion
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -14,7 +6,10 @@
 
 
 
+
 using MediaRecycler.Modules.Options;
+
+using Microsoft.Extensions.Options;
 
 
 
@@ -24,32 +19,36 @@ namespace MediaRecycler;
 public partial class ScraperSettingsForm : Form
 {
 
-    private Scraping _settings;
+    private readonly Scraping _settings;
 
 
 
 
 
 
-
-    public ScraperSettingsForm()
+    public ScraperSettingsForm(IOptionsMonitor<Scraping> settingsMonitor)
     {
         InitializeComponent();
-        LoadCurrentData();
+
+        // Load settings instance
+        _settings = settingsMonitor.CurrentValue;
         BindControls();
     }
 
 
 
+    
 
 
 
 
-    private void LoadCurrentData()
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
     {
-        throw new NotImplementedException();
+        // Save settings before closing
+        _settings.Save();
+        base.OnFormClosing(e);
     }
-
 
 
 
@@ -58,18 +57,39 @@ public partial class ScraperSettingsForm : Form
 
     private void BindControls()
     {
-        txtDefaultTimeout.DataBindings.Add("Text", _settings, nameof(Scraping.DefaultTimeout));
-        txtDefaultPuppeteerTimeout.DataBindings.Add("Text", _settings, nameof(Scraping.DefaultPuppeteerTimeout));
-        txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(Scraping.ArchivePageUrlSuffix));
-        txtPaginationSelector.DataBindings.Add("Text", _settings, nameof(Scraping.PaginationSelector));
-        txtGroupingSelector.DataBindings.Add("Text", _settings, nameof(Scraping.GroupingSelector));
-        txtTargetElementSelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetElementSelector));
-        txtTargetPropertySelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetPropertySelector));
-        chkStartDownloader.DataBindings.Add("Checked", _settings, nameof(Scraping.StartDownloader));
-        txtStartingWebPage.DataBindings.Add("Text", _settings, nameof(Scraping.StartingWebPage));
-        txtUserDataDir.DataBindings.Add("Text", _settings, nameof(Scraping.UserDataDir));
-    }
+        // Clear previous bindings to avoid duplicates
+        txtDefaultTimeout.DataBindings.Clear();
+        txtDefaultPuppeteerTimeout.DataBindings.Clear();
+        txtArchivePageUrlSuffix.DataBindings.Clear();
+        txtPaginationSelector.DataBindings.Clear();
+        txtGroupingSelector.DataBindings.Clear();
+        txtTargetElementSelector.DataBindings.Clear();
+        txtTargetPropertySelector.DataBindings.Clear();
+        chkStartDownloader.DataBindings.Clear();
+        txtStartingWebPage.DataBindings.Clear();
+        txtUserDataDir.DataBindings.Clear();
 
+        // Numeric bindings with conversion
+        var timeoutBinding = txtDefaultTimeout.DataBindings.Add(
+            "Text", _settings, nameof(Scraping.DefaultTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
+        timeoutBinding.Format += (s, e) => e.Value = e.Value?.ToString();
+        timeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+
+        var puppeteerTimeoutBinding = txtDefaultPuppeteerTimeout.DataBindings.Add(
+            "Text", _settings, nameof(Scraping.DefaultPuppeteerTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
+        puppeteerTimeoutBinding.Format += (s, e) => e.Value = e.Value?.ToString();
+        puppeteerTimeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+
+        // String and bool bindings
+        txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(Scraping.ArchivePageUrlSuffix), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtPaginationSelector.DataBindings.Add("Text", _settings, nameof(Scraping.PaginationSelector), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtGroupingSelector.DataBindings.Add("Text", _settings, nameof(Scraping.GroupingSelector), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtTargetElementSelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetElementSelector), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtTargetPropertySelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetPropertySelector), true, DataSourceUpdateMode.OnPropertyChanged);
+        chkStartDownloader.DataBindings.Add("Checked", _settings, nameof(Scraping.StartDownloader), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtStartingWebPage.DataBindings.Add("Text", _settings, nameof(Scraping.StartingWebPage), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtUserDataDir.DataBindings.Add("Text", _settings, nameof(Scraping.UserDataDir), true, DataSourceUpdateMode.OnPropertyChanged);
+    }
 
 
 
@@ -78,29 +98,20 @@ public partial class ScraperSettingsForm : Form
 
     private void btnSave_Click(object? sender, EventArgs e)
     {
-        // Validate and save settings
-        if (_settings == null)
-        {
-            MessageBox.Show("Settings are not initialized.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            return;
-        }
 
         try
         {
-            // Assuming BindControls updates _settings from UI controls
-            BindControls();
-
-            // Save the settings (you may need to implement the actual save logic)
+            // Save the settings
             _settings.Save();
 
             MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+                        MessageBoxIcon.Information);
             Close();
         }
         catch (Exception ex)
         {
             MessageBox.Show($"An error occurred while saving settings: {ex.Message}", "Error", MessageBoxButtons.OK,
-                MessageBoxIcon.Error);
+                        MessageBoxIcon.Error);
         }
     }
 
@@ -109,10 +120,11 @@ public partial class ScraperSettingsForm : Form
 
 
 
-
     private void btnCancel_Click(object? sender, EventArgs e)
     {
-        throw new NotImplementedException();
+        // Optionally reload settings to discard changes
+        _settings.Reload();
+        Close();
     }
 
 }

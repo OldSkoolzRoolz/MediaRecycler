@@ -1,16 +1,13 @@
-#region Header
-
 // Project Name: MediaRecycler
 // Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
 // Distributed under Open Source License
 // Do not remove file headers
 
-#endregion
-
 
 
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
 
 
 
@@ -45,10 +42,11 @@ public static class VideoLinkExtractor
     ///     Main entry point to process blog URLs from the frontier.
     ///     Dequeues URLs and orchestrates the parsing of each blog's archive.
     /// </summary>
-    internal static async Task StartBulkParsingAsync(MiniFrontier frontier,
-        IPage page,
-        Scraping settings,
-        DownloaderModule downloader)
+    internal static async Task StartBulkParsingAsync(
+                MiniFrontier frontier,
+                IPage page,
+                Scraping settings,
+                DownloaderModule downloader)
     {
         // --- Parameter Validation ---
         ArgumentNullException.ThrowIfNull(frontier);
@@ -74,8 +72,8 @@ public static class VideoLinkExtractor
             {
                 // This case might indicate an issue with the frontier implementation
                 ScraperLogger.LogWarning(
-                    "TryDequeue returned false but frontier count is {Count}. There might be an issue with the frontier or null URLs.",
-                    frontier.Count());
+                            "TryDequeue returned false but frontier count is {Count}. There might be an issue with the frontier or null URLs.",
+                            frontier.Count());
             }
 
             // If TryDequeue returns false and Count is 0, the loop condition handles termination.
@@ -105,8 +103,12 @@ public static class VideoLinkExtractor
     /// <param name="settings"></param>
     /// <param name="downloader"></param>
     /// <returns></returns>
-    public static async Task ProcessSingleBlogAsync(Uri blogUrl, ILogger scraperLogger, IPage page,
-        Scraping settings, DownloaderModule downloader)
+    public static async Task ProcessSingleBlogAsync(
+                Uri blogUrl,
+                ILogger scraperLogger,
+                IPage page,
+                Scraping settings,
+                DownloaderModule downloader)
     {
         var sBlogArchiveUrl = string.Empty;
 
@@ -115,18 +117,18 @@ public static class VideoLinkExtractor
             // Construct the specific archive URL
             sBlogArchiveUrl = blogUrl.ToString().TrimEnd('/');
             scraperLogger.LogInformation("Processing Blog URL: {BlogUrl}. Target Archive: {ArchiveUrl}", blogUrl,
-                sBlogArchiveUrl);
+                        sBlogArchiveUrl);
 
             // --- Navigate to the Blog Archive Page ---
             if (!await NavigateToPageAsync(page, sBlogArchiveUrl, scraperLogger,
-                    $"blog archive page: {sBlogArchiveUrl}"))
+                            $"blog archive page: {sBlogArchiveUrl}"))
             {
                 return; // Skip this blog if initial navigation fails
             }
 
             // --- Parse Archive Pages and Collect Video Page Links ---
             var videoPageLinks =
-                await ParseBlogArchivePagesAsync(blogUrl, sBlogArchiveUrl, scraperLogger, page, settings);
+                        await ParseBlogArchivePagesAsync(blogUrl, sBlogArchiveUrl, scraperLogger, page, settings);
 
             // --- Process Extracted Video Page Links ---
             await ProcessVideoPageLinksAsync(videoPageLinks, blogUrl, page, settings, downloader);
@@ -135,8 +137,8 @@ public static class VideoLinkExtractor
         catch (Exception ex) // Catch unexpected errors during the processing of a single blog URL
         {
             scraperLogger.LogError(ex,
-                "An unhandled error occurred while processing blog URL {BlogUrl} (Archive: {ArchiveUrl}). Skipping to next URL.",
-                blogUrl, sBlogArchiveUrl);
+                        "An unhandled error occurred while processing blog URL {BlogUrl} (Archive: {ArchiveUrl}). Skipping to next URL.",
+                        blogUrl, sBlogArchiveUrl);
         }
     }
 
@@ -150,7 +152,11 @@ public static class VideoLinkExtractor
     ///     Navigates the Puppeteer page to a specified URL with error handling and logging.
     /// </summary>
     /// <returns>True if navigation was successful, false otherwise.</returns>
-    private static async Task<bool> NavigateToPageAsync(IPage page, string url, ILogger logger, string pageDescription)
+    private static async Task<bool> NavigateToPageAsync(
+                IPage page,
+                string url,
+                ILogger logger,
+                string pageDescription)
     {
         try
         {
@@ -185,7 +191,8 @@ public static class VideoLinkExtractor
 
             logger.LogDebug("Navigating to {PageDescription}: {Url}", pageDescription, url);
             await page.GoToAsync(url,
-                new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.Networkidle2 }, Timeout = 60000 });
+                        new NavigationOptions
+                                    { WaitUntil = new[] { WaitUntilNavigation.Networkidle2 }, Timeout = 60000 });
             logger.LogDebug("Successfully navigated to {PageDescription}: {Url}", pageDescription, url);
             return true;
         }
@@ -211,15 +218,17 @@ public static class VideoLinkExtractor
 
 
     // Define the handler separately for clarity and reusability
-    private static async void Page_Request_BlockImages(object? sender, RequestEventArgs e)
+    private static void Page_Request_BlockImages(
+                object? sender,
+                RequestEventArgs e)
     {
         if (e.Request.ResourceType == ResourceType.Image)
         {
-            await e.Request.AbortAsync();
+            e.Request.AbortAsync().Wait();
         }
         else
         {
-            await e.Request.ContinueAsync();
+            e.Request.ContinueAsync().Wait();
         }
 
 
@@ -238,8 +247,12 @@ public static class VideoLinkExtractor
     ///     Parses through the paginated archive of a blog, extracting links to individual video pages.
     /// </summary>
     /// <returns>A HashSet containing all unique video page links found.</returns>
-    internal static async Task<HashSet<string>> ParseBlogArchivePagesAsync(Uri blogUrl, string currentArchiveUrl,
-        ILogger scraperLogger, IPage page, Scraping settings)
+    internal static async Task<HashSet<string>> ParseBlogArchivePagesAsync(
+                Uri blogUrl,
+                string currentArchiveUrl,
+                ILogger scraperLogger,
+                IPage page,
+                Scraping settings)
     {
         HashSet<string> allVideoPageLinks = new();
         var pageNum = 1;
@@ -257,15 +270,15 @@ public static class VideoLinkExtractor
         while (nextPageAvailable)
         {
             scraperLogger.LogDebug("--- Processing Archive Page {PageNum} for {BlogUrl} (URL: {CurrentPageUrl}) ---",
-                pageNum, blogUrl, currentPageUrl);
+                        pageNum, blogUrl, currentPageUrl);
 
             // Extract links from the current page
             await ExtractVideoPageLinksFromCurrentPageAsync(page, settings, blogUrl, pageNum,
-                allVideoPageLinks);
+                        allVideoPageLinks);
 
             // Handle pagination to the next page
-            (bool Success, string NextPageUrl) paginationResult =
-                await HandleArchivePaginationAsync(page, settings, blogUrl, pageNum);
+            var paginationResult = await HandleArchivePaginationAsync(page, settings, blogUrl, pageNum);
+
             nextPageAvailable = paginationResult.Success;
             currentPageUrl = page.Url; // Update current URL after potential navigation
 
@@ -283,8 +296,8 @@ public static class VideoLinkExtractor
         }
 
         scraperLogger.LogInformation(
-            "Finished archive pagination for {BlogUrl}. Found {LinkCount} unique video page links.", blogUrl,
-            allVideoPageLinks.Count);
+                    "Finished archive pagination for {BlogUrl}. Found {LinkCount} unique video page links.", blogUrl,
+                    allVideoPageLinks.Count);
         return allVideoPageLinks;
     }
 
@@ -297,8 +310,12 @@ public static class VideoLinkExtractor
     /// <summary>
     ///     Extracts video page links from the *currently loaded* archive page and adds them to the provided set.
     /// </summary>
-    private static async Task ExtractVideoPageLinksFromCurrentPageAsync(IPage page,
-        Scraping settings, Uri blogUrl, int pageNum, HashSet<string> videoPageLinks)
+    private static async Task ExtractVideoPageLinksFromCurrentPageAsync(
+                IPage page,
+                Scraping settings,
+                Uri blogUrl,
+                int pageNum,
+                HashSet<string> videoPageLinks)
     {
         IElementHandle[]? nodes = null;
 
@@ -309,13 +326,13 @@ public static class VideoLinkExtractor
             if (nodes == null || nodes.Length == 0)
             {
                 ScraperLogger.LogWarning(
-                    "No archive link nodes found using selector '{Selector}' on page {PageNum} for blog {BlogUrl}",
-                    settings.TargetElementSelector, pageNum, blogUrl);
+                            "No archive link nodes found using selector '{Selector}' on page {PageNum} for blog {BlogUrl}",
+                            settings.TargetElementSelector, pageNum, blogUrl);
                 return;
             }
 
             ScraperLogger.LogDebug("Found {NodeCount} potential video page links on page {PageNum}.", nodes.Length,
-                pageNum);
+                        pageNum);
 
             foreach (var nodeHandle in nodes)
             {
@@ -342,8 +359,8 @@ public static class VideoLinkExtractor
                 catch (Exception ex)
                 {
                     ScraperLogger.LogWarning(ex,
-                        "Error extracting href from an element on archive page {PageNum} of {BlogUrl}. Continuing.",
-                        pageNum, blogUrl);
+                                "Error extracting href from an element on archive page {PageNum} of {BlogUrl}. Continuing.",
+                                pageNum, blogUrl);
                 }
                 finally
                 {
@@ -361,7 +378,7 @@ public static class VideoLinkExtractor
         catch (Exception ex)
         {
             ScraperLogger.LogError(ex, "Error querying/processing archive links on page {PageNum} for {BlogUrl}",
-                pageNum, blogUrl);
+                        pageNum, blogUrl);
 
             // Decide whether to throw, stop pagination, or just log and continue
         }
@@ -388,10 +405,11 @@ public static class VideoLinkExtractor
     ///     Finds the 'next' pagination link, clicks it, and waits for navigation.
     /// </summary>
     /// <returns>A record indicating success (true if navigation occurred, false otherwise).</returns>
-    private static async Task<(bool Success, string? NextPageUrl)> HandleArchivePaginationAsync(IPage page,
-        Scraping settings,
-        Uri blogUrl,
-        int currentPageNum)
+    private static async Task<(bool Success, string? NextPageUrl)> HandleArchivePaginationAsync(
+                IPage page,
+                Scraping settings,
+                Uri blogUrl,
+                int currentPageNum)
     {
         IElementHandle? nextAnchorHandle = null;
         string? nextPageUrl = null;
@@ -402,42 +420,43 @@ public static class VideoLinkExtractor
             // Maybe look for specific text or 'rel=next' attribute if available.
             // Example: "ul.pagination li:not(.disabled) a[rel='next']" or similar
             nextAnchorHandle =
-                await page.QuerySelectorAsync(settings
-                    .PaginationSelector); // Assuming this selects the *correct* next link
+                        await page.QuerySelectorAsync(settings
+                                    .PaginationSelector); // Assuming this selects the *correct* next link
 
             if (nextAnchorHandle != null)
             {
 
                 ScraperLogger.LogDebug(
-                    "Found next page link (Page {CurrentPageNum} -> ?). Clicking and waiting for navigation. Target URL (approx): {NextPageUrl}",
-                    currentPageNum, nextPageUrl ?? "N/A");
+                            "Found next page link (Page {CurrentPageNum} -> ?). Clicking and waiting for navigation. Target URL (approx): {NextPageUrl}",
+                            currentPageNum, nextPageUrl ?? "N/A");
 
                 // Use Task.WhenAll for potentially faster execution if network latency is high
                 await Task.WhenAll(
-                    nextAnchorHandle.ClickAsync(),
-                    page.WaitForNavigationAsync(new NavigationOptions
-                    {
-                        WaitUntil = new[] { WaitUntilNavigation.Networkidle2 }, Timeout = settings.DefaultTimeout
-                    })
-                );
+                            nextAnchorHandle.ClickAsync(),
+                            page.WaitForNavigationAsync(new NavigationOptions
+                            {
+                                        WaitUntil = new[] { WaitUntilNavigation.Networkidle2 },
+                                        Timeout = settings.DefaultTimeout
+                            })
+                            );
 
                 ScraperLogger.LogDebug("Navigation to page {NextPageNum} complete. New URL: {ActualNewUrl}",
-                    currentPageNum + 1, page.Url);
+                            currentPageNum + 1, page.Url);
                 return (Success: true, NextPageUrl: page.Url);
             }
             else
             {
                 ScraperLogger.LogInformation(
-                    "No next page link found using selector '{Selector}'. Pagination finished for {BlogUrl} after page {CurrentPageNum}.",
-                    settings.PaginationSelector, blogUrl, currentPageNum);
+                            "No next page link found using selector '{Selector}'. Pagination finished for {BlogUrl} after page {CurrentPageNum}.",
+                            settings.PaginationSelector, blogUrl, currentPageNum);
                 return (Success: false, NextPageUrl: null);
             }
         }
         catch (Exception ex)
         {
             ScraperLogger.LogError(ex,
-                "Error occurred during pagination handling (finding/clicking next link) for {BlogUrl} after page {CurrentPageNum}. Stopping pagination.",
-                blogUrl, currentPageNum);
+                        "Error occurred during pagination handling (finding/clicking next link) for {BlogUrl} after page {CurrentPageNum}. Stopping pagination.",
+                        blogUrl, currentPageNum);
             return (Success: false, NextPageUrl: null); // Stop pagination on error
         }
         finally
@@ -458,21 +477,22 @@ public static class VideoLinkExtractor
     /// <summary>
     ///     Iterates through collected video page links, navigates to each, extracts the video source URL, and enqueues it.
     /// </summary>
-    private static async Task ProcessVideoPageLinksAsync(HashSet<string> videoPageLinks,
-        Uri blogUrl,
-        IPage page,
-        Scraping settings,
-        DownloaderModule downloader)
+    private static async Task ProcessVideoPageLinksAsync(
+                HashSet<string> videoPageLinks,
+                Uri blogUrl,
+                IPage page,
+                Scraping settings,
+                DownloaderModule downloader)
     {
         if (!videoPageLinks.Any())
         {
             ScraperLogger.LogInformation("No video page links were extracted for blog {BlogUrl}. Nothing to process.",
-                blogUrl);
+                        blogUrl);
             return;
         }
 
         ScraperLogger.LogInformation("Found {Count} video page links for blog {BlogUrl}. Processing each...",
-            videoPageLinks.Count, blogUrl);
+                    videoPageLinks.Count, blogUrl);
         var processedCount = 0;
         var failedCount = 0;
 
@@ -498,8 +518,9 @@ public static class VideoLinkExtractor
                 if (!string.IsNullOrWhiteSpace(videoSrcUrl))
                 {
                     ScraperLogger.LogInformation(
-                        "Successfully extracted video source URL: {VideoSrcUrl} from page {VideoPageLink}", videoSrcUrl,
-                        link);
+                                "Successfully extracted video source URL: {VideoSrcUrl} from page {VideoPageLink}",
+                                videoSrcUrl,
+                                link);
 
                     if (downloader.EnqueueUrl(new Uri(videoSrcUrl))) // Assuming videoSrcUrl is absolute
                     {
@@ -509,8 +530,8 @@ public static class VideoLinkExtractor
                     else
                     {
                         ScraperLogger.LogWarning(
-                            "Failed to enqueue video URL (already present or downloader stopping?): {VideoSrcUrl}",
-                            videoSrcUrl);
+                                    "Failed to enqueue video URL (already present or downloader stopping?): {VideoSrcUrl}",
+                                    videoSrcUrl);
 
                         // Consider if this should count as a failure or just a skip
                     }
@@ -532,8 +553,8 @@ public static class VideoLinkExtractor
         } // End foreach
 
         ScraperLogger.LogInformation(
-            "Finished processing video links for blog {BlogUrl}. Successfully processed: {ProcessedCount}, Failed/Skipped: {FailedCount}",
-            blogUrl, processedCount, failedCount);
+                    "Finished processing video links for blog {BlogUrl}. Successfully processed: {ProcessedCount}, Failed/Skipped: {FailedCount}",
+                    blogUrl, processedCount, failedCount);
     }
 
 
@@ -543,11 +564,13 @@ public static class VideoLinkExtractor
 
 
     /// <summary>
-    ///     Extracts the direct video source URL (e.g., from a <video> tag's src) from the *currently loaded* page.
+    ///     Extracts the direct video source URL (e.g., from a video tag's src) from the *currently loaded* page.
     /// </summary>
     /// <returns>The video source URL string, or null if not found or an error occurs.</returns>
-    private static async Task<string?> ExtractVideoSourceUrlFromPageAsync(IPage page,
-        Scraping settings, string videoPageLink)
+    private static async Task<string?> ExtractVideoSourceUrlFromPageAsync(
+                IPage page,
+                Scraping settings,
+                string videoPageLink)
     {
         IElementHandle? videoElementHandle = null;
         IJSHandle? srcHandle = null;
@@ -559,8 +582,8 @@ public static class VideoLinkExtractor
             if (videoElementHandle == null)
             {
                 ScraperLogger.LogWarning(
-                    "Unable to find video element using selector '{Selector}' on page: {VideoPageLink}",
-                    settings.TargetElementSelector, videoPageLink);
+                            "Unable to find video element using selector '{Selector}' on page: {VideoPageLink}",
+                            settings.TargetElementSelector, videoPageLink);
                 return null;
             }
 
@@ -569,8 +592,8 @@ public static class VideoLinkExtractor
             if (srcHandle == null)
             {
                 ScraperLogger.LogWarning(
-                    "Could not get 'src' property from the video element found by selector '{Selector}' on page: {VideoPageLink}",
-                    settings.TargetPropertySelector, videoPageLink);
+                            "Could not get 'src' property from the video element found by selector '{Selector}' on page: {VideoPageLink}",
+                            settings.TargetPropertySelector, videoPageLink);
                 return null;
             }
 
@@ -579,7 +602,8 @@ public static class VideoLinkExtractor
             if (string.IsNullOrWhiteSpace(videoSrcUrl))
             {
                 ScraperLogger.LogWarning(
-                    "Found video element but 'src' attribute is empty or null on page: {VideoPageLink}", videoPageLink);
+                            "Found video element but 'src' attribute is empty or null on page: {VideoPageLink}",
+                            videoPageLink);
                 return null;
             }
 
@@ -613,8 +637,11 @@ public static class VideoLinkExtractor
 
 
 
-    public static async Task StartSingleArchiveAsync(string startUrl, IPage page,
-        Scraping scraperSettings, DownloaderModule downloader)
+    public static async Task StartSingleArchiveAsync(
+                string startUrl,
+                IPage page,
+                Scraping scraperSettings,
+                DownloaderModule downloader)
     {
 
 

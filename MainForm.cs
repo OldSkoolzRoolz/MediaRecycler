@@ -1,20 +1,7 @@
-#region Header
-
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License
-// Do not remove file headers
-
-#endregion
-
-
-
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
-using System.ComponentModel;
 
 using MediaRecycler.Modules;
 using MediaRecycler.Modules.Options;
@@ -31,31 +18,37 @@ public partial class MainForm : Form
 {
 
     private readonly DownloaderOptions _downloaderSettings;
+    private readonly IOptionsMonitor<DownloaderOptions> _downloaderSettingsMonitor;
     private readonly MiniFrontierSettings _frontierSettings;
+    private readonly IOptionsMonitor<MiniFrontierSettings> _frontierSettingsMonitor;
     private readonly HeadlessBrowserOptions _launcherSettings;
+    private readonly IOptionsMonitor<HeadlessBrowserOptions> _launcherSettingsMonitor;
+    private readonly ILogger<MainForm> _logger;
 
 
     private readonly Scraping _scraperSettings;
+    private readonly IOptionsMonitor<Scraping> _scraperSettingsMonitor;
 
 
 
 
 
 
-
-    public MainForm(IOptionsMonitor<Scraping> scraperSettings,
-        IOptionsMonitor<HeadlessBrowserOptions> launcherSettings, IOptionsMonitor<DownloaderOptions> downloaderSettings,
-        ILogger logger)
+    public MainForm(
+                IOptionsMonitor<Scraping> scraperSettings,
+                IOptionsMonitor<MiniFrontierSettings> miniOptionsMonitor,
+                IOptionsMonitor<HeadlessBrowserOptions> launcherSettings,
+                IOptionsMonitor<DownloaderOptions> downloaderSettings,
+                ILogger<MainForm> logger)
     {
         InitializeComponent();
-        Logger = logger;
-        _scraperSettings = scraperSettings.CurrentValue;
-        _launcherSettings = launcherSettings.CurrentValue;
+        _logger = logger;
+        _scraperSettingsMonitor = scraperSettings;
+        _launcherSettingsMonitor = launcherSettings;
+        _downloaderSettingsMonitor = downloaderSettings;
+        _frontierSettingsMonitor = miniOptionsMonitor;
 
-        //_frontierSettings = frontierSettings.CurrentValue;
-        _downloaderSettings = downloaderSettings.CurrentValue;
-
-        SetStatusLabelText("Ready");
+        AppendToMainViewer("Initializer finished");
 
     }
 
@@ -63,10 +56,6 @@ public partial class MainForm : Form
 
 
 
-
-
-    [DesignerSerializationVisibility(DesignerSerializationVisibility.Visible)]
-    public static ILogger Logger { get; set; }
 
     public RichTextBox MainLogRichTextBox => rtb_main;
 
@@ -75,32 +64,8 @@ public partial class MainForm : Form
 
 
 
-
-    public void MainForm_Load(object sender, EventArgs e)
-    {
-
-
-
-        // Log the form load event
-        Logger?.LogInformation("MainForm loaded successfully.");
-
-        // Set the initial status label text
-        SetStatusLabelText("Welcome to Media Recycler!");
-
-        // Optionally, you can initialize other components or settings here
-        // For example, you might want to load settings or initialize services
-    }
-
-
-
-
-
-
-
-    // Fix for CS1061: 'ToolStripStatusLabel' does not contain a definition for 'InvokeRequired'.
-    // Explanation: ToolStripStatusLabel does not inherit from Control, so it does not have the InvokeRequired property.
-    // Instead, you should check the InvokeRequired property of the parent control (e.g., the Form or StatusStrip).
-    public void SetStatusLabelText(string text)
+    public void SetStatusLabelText(
+                string text)
     {
         if (statusStrip1.InvokeRequired) // Use the parent control's InvokeRequired property
         {
@@ -117,12 +82,9 @@ public partial class MainForm : Form
 
 
 
-
-    // Example usage in AppendToMainViewer
-    private void AppendToMainViewer(string text)
+    private void AppendToMainViewer(
+                string text)
     {
-        //_logger.LogInformation("Appending text to main viewer: {Text}", text);
-
         if (rtb_main.InvokeRequired)
         {
             rtb_main.Invoke(new Action<string>(AppendToMainViewer), text);
@@ -138,10 +100,11 @@ public partial class MainForm : Form
 
 
 
-
-    private void Button1_Click(object sender, EventArgs e)
+    private void Button1_Click(
+                object sender,
+                EventArgs e)
     {
-        Logger?.LogInformation("Button 1 clicked.");
+        _logger?.LogInformation("Button 1 clicked.");
     }
 
 
@@ -149,13 +112,10 @@ public partial class MainForm : Form
 
 
 
-
-    private void button4_Click(object sender, EventArgs e)
+    private void button4_Click(
+                object sender,
+                EventArgs e)
     {
-
-
-
-
         for (var x = 0; x < 10; x++)
         {
             AppendToMainViewer("Testing " + x);
@@ -167,15 +127,15 @@ public partial class MainForm : Form
 
 
 
-
-    private void downloaderSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+    private void downloaderSettingsToolStripMenuItem_Click(
+                object sender,
+                EventArgs e)
     {
         //Menu Click DownloaderSettings > Form opening
         DownloaderSettingsForm downloaderSettings = new();
         downloaderSettings.ShowDialog(this);
 
-
-        Logger?.LogTrace("DownloaderSettings form closing.");
+        _logger?.LogTrace("DownloaderSettings form closing.");
         downloaderSettings.Close(); // Dispose of the form after use
     }
 
@@ -184,13 +144,15 @@ public partial class MainForm : Form
 
 
 
-
-    private void scraperSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+    private void scraperSettingsToolStripMenuItem_Click(
+                object sender,
+                EventArgs e)
     {
         //Menu Click ScraperSettings > Form opening
-        Logger?.LogTrace("ScraperSettings form opening.");
-        new ScraperSettingsForm().ShowDialog(this);
+        _logger?.LogTrace("ScraperSettings form opening.");
 
+        ScraperSettingsForm scraperSettingsForm = new(_scraperSettingsMonitor);
+        scraperSettingsForm.ShowDialog(this);
 
 
     }
@@ -200,13 +162,13 @@ public partial class MainForm : Form
 
 
 
-
-    private async void btn_GetPage_Click(object sender, EventArgs e)
+    private void btn_GetPage_Click(
+                object sender,
+                EventArgs e)
     {
         // Create a new instance of the Scrapers class
 
-        var scrapersobj =
-            await Scrapers.CreateAsync(_launcherSettings, _scraperSettings, _downloaderSettings, Logger);
+        // var scrapersobj =await Scrapers.CreateAsync(_launcherSettings, _scraperSettings, _downloaderSettings, _logger);
 
         try
         {
@@ -214,13 +176,9 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            Logger?.LogError(ex, "Error initializing scrapers: {Message}", ex.Message);
+            _logger?.LogError(ex, "Error initializing scrapers: {Message}", ex.Message);
             AppendToMainViewer("Error initializing scrapers: " + ex.Message);
-
-
-
         }
-
     }
 
 }

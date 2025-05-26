@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "MediaRecycler": {
+      "commandName": "Project",
+      "hotReloadEnabled": false
+    }
+  }
+}
