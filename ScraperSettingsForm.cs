@@ -26,18 +26,17 @@ public partial class ScraperSettingsForm : Form
 
 
 
-    public ScraperSettingsForm(IOptionsMonitor<Scraping> settingsMonitor)
+    public ScraperSettingsForm()
     {
         InitializeComponent();
 
         // Load settings instance
-        _settings = settingsMonitor.CurrentValue;
+        _settings = Scraping.Default;
         BindControls();
     }
 
 
 
-    
 
 
 
@@ -67,28 +66,36 @@ public partial class ScraperSettingsForm : Form
         txtTargetPropertySelector.DataBindings.Clear();
         chkStartDownloader.DataBindings.Clear();
         txtStartingWebPage.DataBindings.Clear();
-        txtUserDataDir.DataBindings.Clear();
+       
 
         // Numeric bindings with conversion
         var timeoutBinding = txtDefaultTimeout.DataBindings.Add(
-            "Text", _settings, nameof(Scraping.DefaultTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
+                    "Text", _settings, nameof(Scraping.DefaultTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
         timeoutBinding.Format += (s, e) => e.Value = e.Value?.ToString();
         timeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
 
         var puppeteerTimeoutBinding = txtDefaultPuppeteerTimeout.DataBindings.Add(
-            "Text", _settings, nameof(Scraping.DefaultPuppeteerTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
+                    "Text", _settings, nameof(Scraping.DefaultPuppeteerTimeout), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
         puppeteerTimeoutBinding.Format += (s, e) => e.Value = e.Value?.ToString();
         puppeteerTimeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
 
         // String and bool bindings
-        txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(Scraping.ArchivePageUrlSuffix), true, DataSourceUpdateMode.OnPropertyChanged);
-        txtPaginationSelector.DataBindings.Add("Text", _settings, nameof(Scraping.PaginationSelector), true, DataSourceUpdateMode.OnPropertyChanged);
-        txtGroupingSelector.DataBindings.Add("Text", _settings, nameof(Scraping.GroupingSelector), true, DataSourceUpdateMode.OnPropertyChanged);
-        txtTargetElementSelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetElementSelector), true, DataSourceUpdateMode.OnPropertyChanged);
-        txtTargetPropertySelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetPropertySelector), true, DataSourceUpdateMode.OnPropertyChanged);
-        chkStartDownloader.DataBindings.Add("Checked", _settings, nameof(Scraping.StartDownloader), true, DataSourceUpdateMode.OnPropertyChanged);
-        txtStartingWebPage.DataBindings.Add("Text", _settings, nameof(Scraping.StartingWebPage), true, DataSourceUpdateMode.OnPropertyChanged);
-        txtUserDataDir.DataBindings.Add("Text", _settings, nameof(Scraping.UserDataDir), true, DataSourceUpdateMode.OnPropertyChanged);
+        txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(Scraping.ArchivePageUrlSuffix), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+        txtPaginationSelector.DataBindings.Add("Text", _settings, nameof(Scraping.PaginationSelector), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+        txtGroupingSelector.DataBindings.Add("Text", _settings, nameof(Scraping.GroupingSelector), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+        txtTargetElementSelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetElementSelector), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+        txtTargetPropertySelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetPropertySelector), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+        chkStartDownloader.DataBindings.Add("Checked", _settings, nameof(Scraping.StartDownloader), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+        txtStartingWebPage.DataBindings.Add("Text", _settings, nameof(Scraping.StartingWebPage), true,
+                    DataSourceUpdateMode.OnPropertyChanged);
+       
     }
 
 
@@ -113,6 +120,7 @@ public partial class ScraperSettingsForm : Form
             MessageBox.Show($"An error occurred while saving settings: {ex.Message}", "Error", MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
         }
+       
     }
 
 

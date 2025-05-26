@@ -92,7 +92,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
     /// <summary>
     ///     Asynchronously creates and initializes a <see cref="Scrapers" /> instance.
     /// </summary>
-    public static async Task<Scrapers> CreateAsync(
+    public static Scrapers Create(
                 HeadlessBrowserOptions launcher,
                 Scraping scraperSettings,
                 DownloaderOptions downloaderSettings,
@@ -111,12 +111,12 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         try
         {
             instance._scraperLogger.LogInformation("Verifying distribution status and initializing URL frontier...");
-            await instance.CheckFrontierStatusAsync();
+       //     await instance.CheckFrontierStatusAsync();
 
             instance._scraperLogger.LogInformation("Starting asynchronous initialization...");
             ArgumentNullException.ThrowIfNull(launcher, nameof(launcher));
 
-            await instance.InitializeAsync(launcher);
+         //   await instance.InitializeAsync(launcher);
 
             if (instance.Browser == null)
             {
@@ -125,7 +125,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
             instance._scraperLogger.LogDebug("Browser initialized.");
 
-            await instance.CreateContextAsync();
+         //   await instance.CreateContextAsync();
 
             if (instance.Context == null)
             {
@@ -134,7 +134,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
             instance._scraperLogger.LogDebug("Browser Context created.");
 
-            await instance.CreatePageAsync();
+          //  await instance.CreatePageAsync();
 
             if (instance.Page == null)
             {
@@ -149,7 +149,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         catch (Exception ex)
         {
             instance._scraperLogger.LogError(ex, "Failed during asynchronous initialization.");
-            await instance.DisposeAsync();
+         //   await instance.DisposeAsync();
             throw;
         }
     }

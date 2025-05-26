@@ -292,7 +292,7 @@ public class DownloaderModule : IAsyncDisposable
         var statusCode = (int)ex.StatusCode;
 
         // Retry on 5xx server errors, 408 Timeout, 429 Too Many Requests
-        return statusCode is >= 500 and <= 599 or
+        return statusCode is (>= 500 and <= 599) or
             (int)HttpStatusCode.RequestTimeout or // 408
             (int)HttpStatusCode.TooManyRequests; // 429
 

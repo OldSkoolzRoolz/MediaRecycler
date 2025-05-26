@@ -59,6 +59,7 @@
             tb_videos = new TextBox();
             label3 = new Label();
             btn_GetPage = new Button();
+            tip = new ToolTip(components);
             statusStrip1.SuspendLayout();
             menuStrip1.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -104,6 +105,7 @@
             btn_load.Size = new Size(100, 30);
             btn_load.TabIndex = 1;
             btn_load.Text = "Load";
+            tip.SetToolTip(btn_load, "Load the webpage as set in scraping settings..");
             btn_load.UseVisualStyleBackColor = true;
             btn_load.Click += Button1_Click;
             // 
@@ -115,6 +117,7 @@
             btn_scrape.Size = new Size(100, 30);
             btn_scrape.TabIndex = 2;
             btn_scrape.Text = "Scrape";
+            tip.SetToolTip(btn_scrape, "Scrape the loaded page for videos and pages.");
             btn_scrape.UseVisualStyleBackColor = true;
             // 
             // btn_download
@@ -125,6 +128,7 @@
             btn_download.Size = new Size(100, 30);
             btn_download.TabIndex = 3;
             btn_download.Text = "Download";
+            tip.SetToolTip(btn_download, "Download the videos found on the page.");
             btn_download.UseVisualStyleBackColor = true;
             // 
             // menuStrip1
@@ -168,6 +172,7 @@
             puppeteerSettingsToolStripMenuItem.Name = "puppeteerSettingsToolStripMenuItem";
             puppeteerSettingsToolStripMenuItem.Size = new Size(183, 22);
             puppeteerSettingsToolStripMenuItem.Text = "Puppeteer Settings";
+            puppeteerSettingsToolStripMenuItem.Click += puppeteerSettingsToolStripMenuItem_Click;
             // 
             // fileToolStripMenuItem
             // 
@@ -289,6 +294,7 @@
             btn_GetPage.Size = new Size(100, 30);
             btn_GetPage.TabIndex = 13;
             btn_GetPage.Text = "Get Page";
+            tip.SetToolTip(btn_GetPage, "Get the page number specified in the text box.");
             btn_GetPage.UseVisualStyleBackColor = true;
             btn_GetPage.Click += btn_GetPage_Click;
             // 
@@ -345,5 +351,6 @@
         private TextBox textBox2;
         private TextBox tb_pages;
         private Button btn_GetPage;
+        private ToolTip tip;
     }
 }

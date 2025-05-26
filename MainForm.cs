@@ -151,24 +151,35 @@ public partial class MainForm : Form
         //Menu Click ScraperSettings > Form opening
         _logger?.LogTrace("ScraperSettings form opening.");
 
-        ScraperSettingsForm scraperSettingsForm = new(_scraperSettingsMonitor);
+        ScraperSettingsForm scraperSettingsForm = new();
         scraperSettingsForm.ShowDialog(this);
 
 
     }
 
+    private void btn_GetPage_Click(object sender, EventArgs e)
+    {
+       // var scrapersobj = Scrapers.Create(_launcherSettingsMonitor, _scraperSettingsMonitor, _downloaderSettingsMonitor, _logger).GetAwaiter().GetResult();
+    }
+
+    private void puppeteerSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        PuppeteerSettingsForm puppetSettings = new();
+        puppetSettings.ShowDialog(this);
+    }
 
 
 
 
+    /*
 
-    private void btn_GetPage_Click(
+    private Task btn_GetPage_ClickAsync(
                 object sender,
                 EventArgs e)
     {
         // Create a new instance of the Scrapers class
 
-        // var scrapersobj =await Scrapers.CreateAsync(_launcherSettings, _scraperSettings, _downloaderSettings, _logger);
+        var scrapersobj =await Scrapers.CreateAsync(_launcherSettings, _scraperSettings, _downloaderSettings, _logger);
 
         try
         {
@@ -180,5 +191,10 @@ public partial class MainForm : Form
             AppendToMainViewer("Error initializing scrapers: " + ex.Message);
         }
     }
+    */
+
+
+
+
 
 }

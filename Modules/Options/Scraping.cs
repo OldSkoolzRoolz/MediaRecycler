@@ -1,17 +1,11 @@
-#region Header
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License
-// Do not remove file headers
-
-#endregion
 
 
 
 using System.ComponentModel.DataAnnotations;
 using System.Configuration;
+using System.Text.Json;
 
 
 
@@ -22,8 +16,74 @@ namespace MediaRecycler.Modules.Options;
 ///     Contains the configurable options for scrapers.
 ///     This class centralizes all settings that control scraper behavior, selectors, and timeouts.
 /// </summary>
-public class Scraping : ApplicationSettingsBase
+public class Scraping 
 {
+
+
+
+    private static readonly string SettingsFilePath = Path.Combine(
+       Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+       "MediaRecycler", "scraping_settings.json");
+
+    private static Scraping? _defaultInstance;
+    public static Scraping Default
+    {
+        get
+        {
+            if (_defaultInstance == null)
+            {
+                _defaultInstance = Load();
+            }
+            return _defaultInstance;
+        }
+    }
+
+    public void Save()
+    {
+        var dir = Path.GetDirectoryName(SettingsFilePath);
+        if (!Directory.Exists(dir))
+            Directory.CreateDirectory(dir!);
+
+        var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(SettingsFilePath, json);
+    }
+
+    public static Scraping Load()
+    {
+        if (File.Exists(SettingsFilePath))
+        {
+            var json = File.ReadAllText(SettingsFilePath);
+            var loaded = JsonSerializer.Deserialize<Scraping>(json);
+            if (loaded != null)
+                return loaded;
+        }
+        return new Scraping();
+    }
+
+    public void Reload()
+    {
+        var loaded = Load();
+        // Copy properties from loaded to this
+        DefaultTimeout = loaded.DefaultTimeout;
+        DefaultPuppeteerTimeout = loaded.DefaultPuppeteerTimeout;
+        ArchivePageUrlSuffix = loaded.ArchivePageUrlSuffix;
+        PaginationSelector = loaded.PaginationSelector;
+        GroupingSelector = loaded.GroupingSelector;
+        TargetElementSelector = loaded.TargetElementSelector;
+        TargetPropertySelector = loaded.TargetPropertySelector;
+        StartDownloader = loaded.StartDownloader;
+        StartingWebPage = loaded.StartingWebPage;
+        
+    }
+
+
+
+
+
+
+
+
+
 
 
 
@@ -103,13 +163,6 @@ public class Scraping : ApplicationSettingsBase
     public string? StartingWebPage { get; set; }
 
 
-    /// <summary>
-    ///     Chrome browser default directory for storing user data.
-    ///     This is used by Puppeteer for browser automation tasks. and should be set to a valid path.
-    ///     It will store cookies and other data to avoid logging in every time.
-    /// </summary>
-    [UserScopedSetting]
-    [DefaultSettingValue("d:\\chromeuserdata")]
-    public string? UserDataDir { get; set; }
+   
 
 }

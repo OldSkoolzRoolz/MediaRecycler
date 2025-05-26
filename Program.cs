@@ -1,8 +1,4 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License
-// Do not remove file headers
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -13,6 +9,7 @@ using MediaRecycler.Modules.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 
 
@@ -23,7 +20,6 @@ internal static class Program
 {
 
     public static ILogger Logger { get; private set; }
-
 
 
 
@@ -49,7 +45,7 @@ internal static class Program
                     .Build();
 
         var services = new ServiceCollection();
-        services.Configure<Scraping>(configuration.GetSection("Scraping"));
+       // services.Configure<Scraping>(configuration.GetSection("Scraping"));
         services.Configure<HeadlessBrowserOptions>(configuration.GetSection(nameof(HeadlessBrowserOptions)));
         services.Configure<MiniFrontierSettings>(configuration.GetSection(nameof(MiniFrontierSettings)));
         services.Configure<DownloaderOptions>(configuration.GetSection(nameof(DownloaderOptions)));
@@ -60,7 +56,9 @@ internal static class Program
             logBuilder.AddProvider(new FileLoggerProvider("logs/app.log", LogLevel.Trace));
         });
         services.AddTransient<MainForm>();
-
+        services.AddSingleton(provider => Scraping.Default);
+        services.AddSingleton<IOptionsMonitor<Scraping>>(provider =>
+                    new OptionsMonitorStub<Scraping>(Scraping.Default));
         /*     services.AddSingleton<ILoggerProvider>(serviceProvider =>
              {
                  var resolvedMainForm = serviceProvider.GetRequiredService<MainForm>();
