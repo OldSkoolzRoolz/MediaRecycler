@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
@@ -26,6 +30,7 @@ internal static class Program
 
 
 
+
     /// <summary>
     ///     The main entry point for the application.
     /// </summary>
@@ -45,7 +50,8 @@ internal static class Program
                     .Build();
 
         var services = new ServiceCollection();
-       // services.Configure<Scraping>(configuration.GetSection("Scraping"));
+
+        // services.Configure<Scraping>(configuration.GetSection("Scraping"));
         services.Configure<HeadlessBrowserOptions>(configuration.GetSection(nameof(HeadlessBrowserOptions)));
         services.Configure<MiniFrontierSettings>(configuration.GetSection(nameof(MiniFrontierSettings)));
         services.Configure<DownloaderOptions>(configuration.GetSection(nameof(DownloaderOptions)));
@@ -59,6 +65,8 @@ internal static class Program
         services.AddSingleton(provider => Scraping.Default);
         services.AddSingleton<IOptionsMonitor<Scraping>>(provider =>
                     new OptionsMonitorStub<Scraping>(Scraping.Default));
+
+
         /*     services.AddSingleton<ILoggerProvider>(serviceProvider =>
              {
                  var resolvedMainForm = serviceProvider.GetRequiredService<MainForm>();

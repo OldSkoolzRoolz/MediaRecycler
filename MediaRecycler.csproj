@@ -22,14 +22,14 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>embedded</DebugType>
+    <DebugType>portable</DebugType>
     <WarningLevel>8</WarningLevel>
 	  <Optimize>True</Optimize>
     <IsPublishable>False</IsPublishable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows|AnyCPU'">
-    <Optimize>False</Optimize>
+    <Optimize>True</Optimize>
   </PropertyGroup>
 
   <ItemGroup>
@@ -78,7 +78,7 @@
     </None>
     <None Update="README.md">
       <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
+      <PackagePath>\\</PackagePath>
     </None>
   </ItemGroup>
 

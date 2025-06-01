@@ -1,12 +1,5 @@
-#region Header
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License
-// Do not remove file headers
-
-#endregion
 
 
 
@@ -37,13 +30,11 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-
     public PuppetBrowserBase(ILogger factory)
     {
         // Use NullLogger if null is passed, preventing NullReferenceExceptions later
         _browserLogger = factory;
     }
-
 
 
 
@@ -64,7 +55,6 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-
     /// <summary>
     ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources
     ///     asynchronously.
@@ -75,7 +65,6 @@ public class PuppetBrowserBase : IAsyncDisposable
         await DisposeAsync(true);
         GC.SuppressFinalize(this); // Suppress finalization since we've cleaned up
     }
-
 
 
 
@@ -108,14 +97,15 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-        //  var fetcher=Puppeteer.CreateBrowserFetcher(new BrowserFetcherOptions());
-        //  var browserTask = fetcher.DownloadAsync();
-        //  _browserLogger.LogInformation("BrowserFetcher downloaded version: {Version}", browserTask);
+        var fetcher = Puppeteer.CreateBrowserFetcher(new BrowserFetcherOptions());
+        var browserTask = fetcher.DownloadAsync();
+        _browserLogger.LogInformation("BrowserFetcher downloaded version: {Version}", browserTask);
+
         // Check if the browser is already downloaded
 
-        //   await browserTask;
+        await browserTask;
 
-        // _launchOptions.ExecutablePath= browserTask.Result.GetExecutablePath();
+        _launchOptions.ExecutablePath = browserTask.Result.GetExecutablePath();
 
         try
         {
@@ -130,7 +120,14 @@ public class PuppetBrowserBase : IAsyncDisposable
             //  var dargs = Puppeteer.GetDefaultArgs();
             Browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                Headless = false, UserDataDir = _launchOptions.UserDataDir
+                        Headless = _launchOptions.Headless,
+                        DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
+                        ExecutablePath = _launchOptions.ExecutablePath,
+
+                        //Args = _launchOptions.Args ?? new string[0], // Use provided args or empty array if null
+                        Timeout = _launchOptions.Timeout // Set timeout for browser launch
+
+
             });
 
 
@@ -140,7 +137,7 @@ public class PuppetBrowserBase : IAsyncDisposable
             Browser.DefaultWaitForTimeout = 60_000;
 
             _browserLogger.LogInformation("Browser initialized successfully. Endpoint: {Endpoint}",
-                Browser.WebSocketEndpoint);
+                        Browser.WebSocketEndpoint);
         }
         catch (Exception ex)
         {
@@ -149,7 +146,6 @@ public class PuppetBrowserBase : IAsyncDisposable
             throw; // Re-throw the exception after logging
         }
     }
-
 
 
 
@@ -170,7 +166,6 @@ public class PuppetBrowserBase : IAsyncDisposable
         // Keep or remove based on actual need. If keeping, derived classes should override.
         // throw new NotImplementedException("Network monitoring setup is not implemented.");
     }
-
 
 
 
@@ -224,7 +219,6 @@ public class PuppetBrowserBase : IAsyncDisposable
             _browserLogger.LogDebug("DisposeAsync called on an already disposed instance.");
         }
     }
-
 
 
 

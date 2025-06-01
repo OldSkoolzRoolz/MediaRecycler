@@ -119,6 +119,7 @@
             btn_scrape.Text = "Scrape";
             tip.SetToolTip(btn_scrape, "Scrape the loaded page for videos and pages.");
             btn_scrape.UseVisualStyleBackColor = true;
+            btn_scrape.Click += btn_scrape_Click;
             // 
             // btn_download
             // 
@@ -130,6 +131,7 @@
             btn_download.Text = "Download";
             tip.SetToolTip(btn_download, "Download the videos found on the page.");
             btn_download.UseVisualStyleBackColor = true;
+            btn_download.Click += btn_download_Click;
             // 
             // menuStrip1
             // 

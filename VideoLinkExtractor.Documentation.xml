@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Documentation>
+	<Class name="VideoLinkExtractor" description="A static class for extracting video links from blog archives and processing them for download.">
+		<Method name="StartBulkParsingAsync" access="internal" description="Main entry point to process blog URLs from the frontier. Dequeues URLs and orchestrates the parsing of each blog's archive.">
+			<Parameter name="frontier" type="MiniFrontier" description="The frontier containing blog URLs to process." />
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="downloader" type="DownloaderModule" description="The downloader module for handling video downloads." />
+		</Method>
+		<Method name="ProcessSingleBlogAsync" access="public" description="Processes a single blog URL by navigating to its archive page, extracting video links, and enqueuing them for download.">
+			<Parameter name="blogUrl" type="Uri" description="The URL of the blog to process." />
+			<Parameter name="scraperLogger" type="ILogger" description="Logger instance for logging scraping activities." />
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="downloader" type="DownloaderModule" description="The downloader module for handling video downloads." />
+		</Method>
+		<Method name="NavigateToPageAsync" access="private" description="Navigates the Puppeteer page to a specified URL with error handling and logging.">
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation." />
+			<Parameter name="url" type="string" description="The URL to navigate to." />
+			<Parameter name="logger" type="ILogger" description="Logger instance for logging navigation activities." />
+			<Parameter name="pageDescription" type="string" description="Description of the page being navigated to." />
+		</Method>
+		<Method name="Page_Request_BlockImages" access="private" description="Event handler to block image requests during page navigation.">
+			<Parameter name="sender" type="object?" description="The event sender." />
+			<Parameter name="e" type="RequestEventArgs" description="Request event arguments." />
+		</Method>
+		<Method name="ParseBlogArchivePagesAsync" access="internal" description="Parses through the paginated archive of a blog, extracting links to individual video pages.">
+			<Parameter name="blogUrl" type="Uri" description="The URL of the blog." />
+			<Parameter name="currentArchiveUrl" type="string" description="The current archive page URL." />
+			<Parameter name="scraperLogger" type="ILogger" description="Logger instance for logging scraping activities." />
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+		</Method>
+		<Method name="ExtractVideoPageLinksFromCurrentPageAsync" access="private" description="Extracts video page links from the currently loaded archive page and adds them to the provided set.">
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="blogUrl" type="Uri" description="The URL of the blog." />
+			<Parameter name="pageNum" type="int" description="The current page number being processed." />
+			<Parameter name="videoPageLinks" type="HashSet&lt;string&gt;" description="The set to store extracted video page links." />
+		</Method>
+		<Method name="HandleArchivePaginationAsync" access="private" description="Finds the 'next' pagination link, clicks it, and waits for navigation.">
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="blogUrl" type="Uri" description="The URL of the blog." />
+			<Parameter name="currentPageNum" type="int" description="The current page number being processed." />
+		</Method>
+		<Method name="ProcessVideoPageLinksAsync" access="private" description="Iterates through collected video page links, navigates to each, extracts the video source URL, and enqueues it.">
+			<Parameter name="videoPageLinks" type="HashSet&lt;string&gt;" description="The set of video page links to process." />
+			<Parameter name="blogUrl" type="Uri" description="The URL of the blog." />
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="downloader" type="DownloaderModule" description="The downloader module for handling video downloads." />
+		</Method>
+		<Method name="ExtractVideoSourceUrlFromPageAsync" access="private" description="Extracts the direct video source URL (e.g., from a video tag's src) from the currently loaded page.">
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="settings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="videoPageLink" type="string" description="The video page link to process." />
+		</Method>
+		<Method name="StartSingleArchiveAsync" access="public" description="Starts processing a single archive page.">
+			<Parameter name="startUrl" type="string" description="The starting URL of the archive page." />
+			<Parameter name="page" type="IPage" description="The Puppeteer page instance used for navigation and scraping." />
+			<Parameter name="scraperSettings" type="Scraping" description="Scraping settings and configurations." />
+			<Parameter name="downloader" type="DownloaderModule" description="The downloader module for handling video downloads." />
+		</Method>
+	</Class>
+</Documentation>
