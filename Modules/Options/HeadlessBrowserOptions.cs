@@ -1,4 +1,10 @@
-﻿#region Header
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
+
+#region Header
 
 // Project Name: MediaRecycler
 // Author:  Kyle Crowder
@@ -8,8 +14,6 @@
 
 #endregion
 
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Configuration;
 
 namespace MediaRecycler.Modules.Options;
@@ -21,10 +25,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     {
         get
         {
-            if (_defaultInstance == null)
-            {
-                _defaultInstance = (HeadlessBrowserOptions)Synchronized(new HeadlessBrowserOptions());
-            }
+            _defaultInstance ??= (HeadlessBrowserOptions)Synchronized(new HeadlessBrowserOptions());
             return _defaultInstance;
         }
     }
@@ -36,7 +37,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("true")]
     public bool Headless
     {
-        get => this[nameof(Headless)] is bool v ? v : true;
+        get => this[nameof(Headless)] is not bool v || v;
         set => this[nameof(Headless)] = value;
     }
 
@@ -65,7 +66,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool Devtools
     {
-        get => this[nameof(Devtools)] is bool v ? v : false;
+        get => this[nameof(Devtools)] is bool v && v;
         set => this[nameof(Devtools)] = value;
     }
 
@@ -80,7 +81,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool IgnoreHTTPSErrors
     {
-        get => this[nameof(IgnoreHTTPSErrors)] is bool v ? v : false;
+        get => this[nameof(IgnoreHTTPSErrors)] is bool v && v;
         set => this[nameof(IgnoreHTTPSErrors)] = value;
     }
 
@@ -96,7 +97,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool DumpIO
     {
-        get => this[nameof(DumpIO)] is bool v ? v : false;
+        get => this[nameof(DumpIO)] is bool v && v;
         set => this[nameof(DumpIO)] = value;
     }
 
@@ -132,7 +133,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool IgnoreDefaultArgs
     {
-        get => this[nameof(IgnoreDefaultArgs)] is bool v ? v : false;
+        get => this[nameof(IgnoreDefaultArgs)] is bool v && v;
         set => this[nameof(IgnoreDefaultArgs)] = value;
     }
 
@@ -224,7 +225,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool NoSandbox
     {
-        get => this[nameof(NoSandbox)] is bool v ? v : false;
+        get => this[nameof(NoSandbox)] is bool v && v;
         set => this[nameof(NoSandbox)] = value;
     }
 

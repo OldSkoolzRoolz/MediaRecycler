@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -84,7 +88,7 @@ public class FileLogger : ILogger
 
         try
         {
-            string? logDirectory = Path.GetDirectoryName(_filePath);
+            var logDirectory = Path.GetDirectoryName(_filePath);
 
             if (!string.IsNullOrEmpty(logDirectory) && !Directory.Exists(logDirectory))
             {
@@ -145,7 +149,7 @@ public class FileLogger : ILogger
         {
             get
             {
-                Stack<FileLoggerScope>? stack = _currentScopes.Value;
+                var stack = _currentScopes.Value;
                 return stack != null && stack.Count > 0 ? stack.Peek() : null;
             }
         }
@@ -157,7 +161,7 @@ public class FileLogger : ILogger
 
         public void Dispose()
         {
-            Stack<FileLoggerScope>? stack = _currentScopes.Value;
+            var stack = _currentScopes.Value;
 
             if (stack != null && stack.Count > 0)
             {

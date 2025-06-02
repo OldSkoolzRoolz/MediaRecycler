@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -31,10 +35,7 @@ public class Scraping
     {
         get
         {
-            if (_defaultInstance == null)
-            {
-                _defaultInstance = Load();
-            }
+            _defaultInstance ??= Load();
 
             return _defaultInstance;
         }
@@ -139,7 +140,7 @@ public class Scraping
 
         if (!Directory.Exists(dir))
         {
-            Directory.CreateDirectory(dir!);
+            _ = Directory.CreateDirectory(dir!);
         }
 
         var json = JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true });

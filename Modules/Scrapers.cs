@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -284,7 +288,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         _ = await Page.GoToAsync(_startUrl);
         _ = await Page.WaitForNavigationAsync(new NavigationOptions
         {
-                    WaitUntil = new[] { WaitUntilNavigation.Networkidle0 }
+            WaitUntil = new[] { WaitUntilNavigation.Networkidle0 }
         });
 
         //await ScrapeArchivePageAsync(Page);
@@ -300,7 +304,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
             _scraperLogger.LogDebug("--- Processing Page {PageNum} ---", pageNum);
             await Task.Delay(500);
 
-            IElementHandle[]? nodes = await Page.QuerySelectorAllAsync("div.namefollowerholder");
+            var nodes = await Page.QuerySelectorAllAsync("div.namefollowerholder");
             _scraperLogger.LogDebug("Found {NodeCount} potential blog entries on page {PageNum}.", nodes?.Length ?? 0,
                         pageNum);
 
@@ -429,7 +433,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
             OnMainFormTextUpdated(response.StatusText);
 
             // Wait for the archive header to ensure the page has loaded
-            await Page.WaitForSelectorAsync("div.archiveheader",
+            _ = await Page.WaitForSelectorAsync("div.archiveheader",
                         new WaitForSelectorOptions { Timeout = _scraperOptions.DefaultPuppeteerTimeout });
 
             //Start processing the blog archive
@@ -523,7 +527,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         }
         else
         {
-            await Page.GoToAsync(_startUrl, WaitUntilNavigation.Networkidle2);
+            _ = await Page.GoToAsync(_startUrl, WaitUntilNavigation.Networkidle2);
 
             if (Page.Url.Contains("login"))
             {

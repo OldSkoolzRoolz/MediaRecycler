@@ -1,4 +1,8 @@
-﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -27,7 +31,7 @@ public partial class DownloaderSettingsForm : Form
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "MediaRecycler", "downloader_settings.json");
 
-    private readonly BindingSource bindingSource = new();
+    private readonly BindingSource bindingSource = [];
     private readonly DownloaderOptions settings = new();
 
     // ErrorProvider for validation feedback
@@ -46,21 +50,21 @@ public partial class DownloaderSettingsForm : Form
         bindingSource.DataSource = settings;
 
         // String properties
-        textBoxDownloadPath.DataBindings.Add("Text", bindingSource, "DownloadPath", false,
+        _ = textBoxDownloadPath.DataBindings.Add("Text", bindingSource, "DownloadPath", false,
                     DataSourceUpdateMode.OnPropertyChanged);
-        textBoxQueuePersistencePath.DataBindings.Add("Text", bindingSource, "QueuePersistencePath", false,
+        _ = textBoxQueuePersistencePath.DataBindings.Add("Text", bindingSource, "QueuePersistencePath", false,
                     DataSourceUpdateMode.OnPropertyChanged);
 
         // Integer properties
-        textBoxMaxConcurrency.DataBindings.Add("Text", bindingSource, "MaxConcurrency", false,
+        _ = textBoxMaxConcurrency.DataBindings.Add("Text", bindingSource, "MaxConcurrency", false,
                     DataSourceUpdateMode.OnPropertyChanged);
-        textBoxMaxRetries.DataBindings.Add("Text", bindingSource, "MaxRetries", false,
+        _ = textBoxMaxRetries.DataBindings.Add("Text", bindingSource, "MaxRetries", false,
                     DataSourceUpdateMode.OnPropertyChanged);
-        textBoxMaxConsecutiveFailures.DataBindings.Add("Text", bindingSource, "MaxConsecutiveFailures", false,
+        _ = textBoxMaxConsecutiveFailures.DataBindings.Add("Text", bindingSource, "MaxConsecutiveFailures", false,
                     DataSourceUpdateMode.OnPropertyChanged);
 
         // TimeSpan property (bind as seconds via helper property)
-        textBoxRetryDelay.DataBindings.Add("Text", this, nameof(RetryDelaySeconds), false,
+        _ = textBoxRetryDelay.DataBindings.Add("Text", this, nameof(RetryDelaySeconds), false,
                     DataSourceUpdateMode.OnPropertyChanged);
 
         // Validation event handlers
@@ -91,12 +95,11 @@ public partial class DownloaderSettingsForm : Form
     {
         get
         {
-            if (_errorProvider == null)
+            _errorProvider ??= new ErrorProvider
             {
-                _errorProvider = new ErrorProvider();
-                _errorProvider.BlinkStyle = ErrorBlinkStyle.NeverBlink;
-                _errorProvider.ContainerControl = this;
-            }
+                BlinkStyle = ErrorBlinkStyle.NeverBlink,
+                ContainerControl = this
+            };
 
             return _errorProvider;
         }
@@ -158,7 +161,7 @@ public partial class DownloaderSettingsForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Failed to load settings: " + ex.Message, "Error", MessageBoxButtons.OK,
+            _ = MessageBox.Show("Failed to load settings: " + ex.Message, "Error", MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
         }
     }
@@ -178,7 +181,7 @@ public partial class DownloaderSettingsForm : Form
 
             if (!Directory.Exists(dir))
             {
-                Directory.CreateDirectory(dir!);
+                _ = Directory.CreateDirectory(dir!);
             }
 
             var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions { WriteIndented = true });
@@ -187,10 +190,9 @@ public partial class DownloaderSettingsForm : Form
         }
         catch (Exception ex)
         {
-            MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK,
+            _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
-
-            if (Application.OpenForms["MainForm"] is MainForm mainForm)
+            if (Application.OpenForms["MainForm"] is MainForm)
             {
                 Program.Logger?.LogError(ex, "Failed to save downloader settings.");
             }

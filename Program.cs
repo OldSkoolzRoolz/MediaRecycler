@@ -1,7 +1,7 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -39,7 +39,7 @@ internal static class Program
     {
         Application.SetCompatibleTextRenderingDefault(false);
         Application.EnableVisualStyles();
-        Application.SetHighDpiMode(HighDpiMode.SystemAware);
+        _ = Application.SetHighDpiMode(HighDpiMode.SystemAware);
         var configuration = new ConfigurationBuilder()
                     .SetBasePath(AppContext.BaseDirectory)
                     .AddJsonFile("appsettings.json", false, true)
@@ -52,18 +52,18 @@ internal static class Program
         var services = new ServiceCollection();
 
         // services.Configure<Scraping>(configuration.GetSection("Scraping"));
-        services.Configure<HeadlessBrowserOptions>(configuration.GetSection(nameof(HeadlessBrowserOptions)));
-        services.Configure<MiniFrontierSettings>(configuration.GetSection(nameof(MiniFrontierSettings)));
-        services.Configure<DownloaderOptions>(configuration.GetSection(nameof(DownloaderOptions)));
-        services.AddLogging(logBuilder =>
+        _ = services.Configure<HeadlessBrowserOptions>(configuration.GetSection(nameof(HeadlessBrowserOptions)));
+        _ = services.Configure<MiniFrontierSettings>(configuration.GetSection(nameof(MiniFrontierSettings)));
+        _ = services.Configure<DownloaderOptions>(configuration.GetSection(nameof(DownloaderOptions)));
+        _ = services.AddLogging(logBuilder =>
         {
-            logBuilder.AddConsole();
-            logBuilder.AddDebug();
-            logBuilder.AddProvider(new FileLoggerProvider("logs/app.log", LogLevel.Trace));
+            _ = logBuilder.AddConsole();
+            _ = logBuilder.AddDebug();
+            _ = logBuilder.AddProvider(new FileLoggerProvider("logs/app.log", LogLevel.Trace));
         });
-        services.AddTransient<MainForm>();
-        services.AddSingleton(provider => Scraping.Default);
-        services.AddSingleton<IOptionsMonitor<Scraping>>(provider =>
+        _ = services.AddTransient<MainForm>();
+        _ = services.AddSingleton(provider => Scraping.Default);
+        _ = services.AddSingleton<IOptionsMonitor<Scraping>>(provider =>
                     new OptionsMonitorStub<Scraping>(Scraping.Default));
 
 
@@ -88,7 +88,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            _ = MessageBox.Show(ex.Message, "Application Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Application.Exit();
         }
     }

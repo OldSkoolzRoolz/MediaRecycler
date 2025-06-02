@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -8,8 +12,6 @@
 
 
 using MediaRecycler.Modules.Options;
-
-using Microsoft.Extensions.Options;
 
 
 
@@ -66,7 +68,7 @@ public partial class ScraperSettingsForm : Form
         txtTargetPropertySelector.DataBindings.Clear();
         chkStartDownloader.DataBindings.Clear();
         txtStartingWebPage.DataBindings.Clear();
-       
+
 
         // Numeric bindings with conversion
         var timeoutBinding = txtDefaultTimeout.DataBindings.Add(
@@ -81,21 +83,21 @@ public partial class ScraperSettingsForm : Form
         puppeteerTimeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
 
         // String and bool bindings
-        txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(Scraping.ArchivePageUrlSuffix), true,
+        _ = txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(Scraping.ArchivePageUrlSuffix), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-        txtPaginationSelector.DataBindings.Add("Text", _settings, nameof(Scraping.PaginationSelector), true,
+        _ = txtPaginationSelector.DataBindings.Add("Text", _settings, nameof(Scraping.PaginationSelector), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-        txtGroupingSelector.DataBindings.Add("Text", _settings, nameof(Scraping.GroupingSelector), true,
+        _ = txtGroupingSelector.DataBindings.Add("Text", _settings, nameof(Scraping.GroupingSelector), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-        txtTargetElementSelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetElementSelector), true,
+        _ = txtTargetElementSelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetElementSelector), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-        txtTargetPropertySelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetPropertySelector), true,
+        _ = txtTargetPropertySelector.DataBindings.Add("Text", _settings, nameof(Scraping.TargetPropertySelector), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-        chkStartDownloader.DataBindings.Add("Checked", _settings, nameof(Scraping.StartDownloader), true,
+        _ = chkStartDownloader.DataBindings.Add("Checked", _settings, nameof(Scraping.StartDownloader), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-        txtStartingWebPage.DataBindings.Add("Text", _settings, nameof(Scraping.StartingWebPage), true,
+        _ = txtStartingWebPage.DataBindings.Add("Text", _settings, nameof(Scraping.StartingWebPage), true,
                     DataSourceUpdateMode.OnPropertyChanged);
-       
+
     }
 
 
@@ -111,16 +113,16 @@ public partial class ScraperSettingsForm : Form
             // Save the settings
             _settings.Save();
 
-            MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK,
+            _ = MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK,
                         MessageBoxIcon.Information);
             Close();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"An error occurred while saving settings: {ex.Message}", "Error", MessageBoxButtons.OK,
+            _ = MessageBox.Show($"An error occurred while saving settings: {ex.Message}", "Error", MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
         }
-       
+
     }
 
 

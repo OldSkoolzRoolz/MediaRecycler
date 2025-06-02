@@ -1,3 +1,9 @@
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
+
 #region Header
 
 // "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
@@ -43,7 +49,7 @@ public static class ProcessUtils
     public static int KillProcessesByName(string processName, ILogger? logger = null)
     {
         logger ??= NullLogger.Instance; // Use NullLogger if none provided
-        int killedCount = 0;
+        var killedCount = 0;
 
         if (string.IsNullOrWhiteSpace(processName))
         {
@@ -54,10 +60,10 @@ public static class ProcessUtils
         logger.LogInformation("Attempting to find and kill processes named '{ProcessName}'...", processName);
 
         // Get all processes and filter manually for case-insensitivity and robustness
-        IEnumerable<Process>? processesToKill = Process.GetProcesses()
+        var processesToKill = Process.GetProcesses()
             .Where(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
 
-        foreach (Process? process in processesToKill)
+        foreach (var process in processesToKill)
         {
             try
             {

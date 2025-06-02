@@ -1,7 +1,7 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -14,10 +14,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.NetworkInformation;
-using System.Security.Policy;
 using System.Text.Json;
-using System.Threading;
 
 using MediaRecycler.Modules.Options;
 
@@ -49,7 +46,7 @@ public class DownloaderModule : IAsyncDisposable
 
     private readonly object _queueSaveLock = new(); // Add this field to the class for locking
 
-      private readonly AsyncRetryPolicy _retryPolicy;
+    private readonly AsyncRetryPolicy _retryPolicy;
 
     private readonly DownloaderOptions _settings;
 
@@ -233,9 +230,9 @@ public class DownloaderModule : IAsyncDisposable
         _httpClient.DefaultRequestHeaders.Pragma.Add(new NameValueHeaderValue("no-cache"));
         _httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
         {
-                    NoCache = true,
-                    NoStore = true,
-                    MustRevalidate = true
+            NoCache = true,
+            NoStore = true,
+            MustRevalidate = true
         };
         _httpClient.DefaultRequestHeaders.ConnectionClose = true; // Close connection after each request
         _httpClient.DefaultRequestHeaders.Date = DateTimeOffset.UtcNow; // Set current date for requests
@@ -752,7 +749,7 @@ public class DownloaderModule : IAsyncDisposable
         }
 
         var success = false;
-        Context pollyContext = new($"Download-{url}") { ["Url"] = url };
+        _ = new Context($"Download-{url}") { ["Url"] = url };
 
         _logger.LogInformation("DownloadAndHandleRetriesAsync started for {Url}", url);
 

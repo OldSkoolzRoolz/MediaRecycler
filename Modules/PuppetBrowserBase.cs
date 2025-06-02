@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -103,7 +107,7 @@ public class PuppetBrowserBase : IAsyncDisposable
 
         // Check if the browser is already downloaded
 
-        await browserTask;
+        _ = await browserTask;
 
         _launchOptions.ExecutablePath = browserTask.Result.GetExecutablePath();
 
@@ -120,12 +124,12 @@ public class PuppetBrowserBase : IAsyncDisposable
             //  var dargs = Puppeteer.GetDefaultArgs();
             Browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                        Headless = _launchOptions.Headless,
-                        DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
-                        ExecutablePath = _launchOptions.ExecutablePath,
+                Headless = _launchOptions.Headless,
+                DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
+                ExecutablePath = _launchOptions.ExecutablePath,
 
-                        //Args = _launchOptions.Args ?? new string[0], // Use provided args or empty array if null
-                        Timeout = _launchOptions.Timeout // Set timeout for browser launch
+                //Args = _launchOptions.Args ?? new string[0], // Use provided args or empty array if null
+                Timeout = _launchOptions.Timeout // Set timeout for browser launch
 
 
             });

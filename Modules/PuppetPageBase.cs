@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -99,7 +103,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
 
 
                 //New page is inherently opened when a new browser is launched we will attempt to use it first.
-                IPage[]? pages = await Browser.PagesAsync();
+                var pages = await Browser.PagesAsync();
 
                 if (pages != null && pages.Length > 0)
                 {
@@ -176,7 +180,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
 
             // Use the internal helper for consistency.
             // We capture the reference in case Page is set to null concurrently (though unlikely here).
-            IPage? pageToDispose = Page;
+            var pageToDispose = Page;
             Page = null; // Set to null immediately to signal disposal has started.
             await CloseAndDisposePageInternalAsync(pageToDispose);
         }
@@ -277,7 +281,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
     {
         // Capture the current page reference to work with, mitigating race conditions
         // if `this.Page` is set to null by disposal on another thread.
-        IPage? currentPage = Page;
+        var currentPage = Page;
 
         // --- Initial State Check ---
         if (currentPage == null || currentPage.IsClosed)
@@ -302,7 +306,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
             // **CRITICAL:** Unsubscribe *before* completing the task to prevent potential
             // re-entrancy or handling duplicate events if they fire rapidly.
             // Use the captured 'currentPage' and re-check its state for safety.
-            IPage? pageNow = Page; // Re-check the main Page field as well
+            var pageNow = Page; // Re-check the main Page field as well
 
             if (pageNow != null && !pageNow.IsClosed)
             {
@@ -327,7 +331,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
 
                 // Unsubscribe on cancellation to prevent the handler from being called later
                 // and to avoid resource leaks. Re-check state before unsubscribing.
-                IPage? pageNow = Page;
+                var pageNow = Page;
 
                 if (pageNow != null && !pageNow.IsClosed)
                 {
@@ -376,7 +380,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
         {
             // Attempt to unsubscribe immediately if the state changed right after subscribing.
             // Re-check state before unsubscribing.
-            IPage? pageNow = Page;
+            var pageNow = Page;
 
             if (pageNow != null && !pageNow.IsClosed)
             {

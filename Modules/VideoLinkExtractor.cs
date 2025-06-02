@@ -1,7 +1,7 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -203,10 +203,10 @@ public class VideoLinkExtractor
 
 
             logger.LogDebug("Navigating to {PageDescription}: {Url}", pageDescription, url);
-            await page.GoToAsync(url,
+            _ = await page.GoToAsync(url,
                         new NavigationOptions
                         {
-                                    WaitUntil = new[] { WaitUntilNavigation.Networkidle2 }, Timeout = 60000
+                            WaitUntil = new[] { WaitUntilNavigation.Networkidle2 }, Timeout = 60000
                         });
             logger.LogDebug("Successfully navigated to {PageDescription}: {Url}", pageDescription, url);
             return true;
@@ -288,7 +288,7 @@ public class VideoLinkExtractor
                 IPage page,
                 Scraping settings)
     {
-        HashSet<string> allVideoPageLinks = new();
+        HashSet<string> allVideoPageLinks = [];
         var pageNum = 1;
         var nextPageAvailable = true;
         var currentPageUrl = currentArchiveUrl; // Track the current URL for logging
@@ -463,8 +463,8 @@ public class VideoLinkExtractor
                             nextAnchorHandle.ClickAsync(),
                             page.WaitForNavigationAsync(new NavigationOptions
                             {
-                                        WaitUntil = new[] { WaitUntilNavigation.Networkidle2 },
-                                        Timeout = settings.DefaultTimeout
+                                WaitUntil = new[] { WaitUntilNavigation.Networkidle2 },
+                                Timeout = settings.DefaultTimeout
                             })
                             );
 

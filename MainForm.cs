@@ -1,7 +1,7 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -81,7 +81,7 @@ public partial class MainForm : Form
 
 
 
-    public RichTextBox MainLogRichTextBox => rtb_main;
+    public RichTextBox MainLogRichTextBox { get; private set; }
 
 
 
@@ -94,7 +94,7 @@ public partial class MainForm : Form
     {
         if (statusStrip1.InvokeRequired) // Use the parent control's InvokeRequired property
         {
-            BeginInvoke(() => SetStatusLabelText(sender, text));
+            _ = BeginInvoke(() => SetStatusLabelText(sender, text));
             return;
         }
 
@@ -107,18 +107,17 @@ public partial class MainForm : Form
 
 
 
-    private void AppendToMainViewer(object? sender,
-                string text)
+    private void AppendToMainViewer(object? sender, string text)
     {
         if (InvokeRequired)
         {
-            BeginInvoke(() => AppendToMainViewer(sender, text));
+            _ = BeginInvoke(() => AppendToMainViewer(sender, text));
             return;
         }
 
-        rtb_main.AppendText(text);
-        rtb_main.AppendText(Environment.NewLine);
-        rtb_main.ScrollToCaret();
+        MainLogRichTextBox.AppendText(text);
+        MainLogRichTextBox.AppendText(Environment.NewLine);
+        MainLogRichTextBox.ScrollToCaret();
 
     }
 
@@ -128,15 +127,13 @@ public partial class MainForm : Form
 
 
 
-    private void Button1_Click(
-                object sender,
-                EventArgs e)
+    private void Button1_Click(object sender, EventArgs e)
     {
         _logger?.LogInformation("Button 1 clicked.");
         var path = "d:\\downloads";
         var path2 = "d:\\downloads\\masterkyle";
         var files = Directory.GetFiles(path);
-        var subdir = Directory.GetFiles(path2);
+        _ = Directory.GetFiles(path2);
 
         foreach (var file in files)
         {
@@ -180,7 +177,7 @@ public partial class MainForm : Form
     {
         //Menu Click DownloaderSettings > Form opening
         DownloaderSettingsForm downloaderSettings = new();
-        downloaderSettings.ShowDialog(this);
+        _ = downloaderSettings.ShowDialog(this);
 
         _logger?.LogTrace("DownloaderSettings form closing.");
         downloaderSettings.Close(); // Dispose of the form after use
@@ -200,7 +197,7 @@ public partial class MainForm : Form
         _logger?.LogTrace("ScraperSettings form opening.");
 
         ScraperSettingsForm scraperSettingsForm = new();
-        scraperSettingsForm.ShowDialog(this);
+        _ = scraperSettingsForm.ShowDialog(this);
 
 
     }
@@ -256,7 +253,7 @@ public partial class MainForm : Form
     private void puppeteerSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         PuppeteerSettingsForm puppetSettings = new();
-        puppetSettings.ShowDialog(this);
+        _ = puppetSettings.ShowDialog(this);
     }
 
 
