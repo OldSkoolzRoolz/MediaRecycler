@@ -1,8 +1,4 @@
-﻿// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -27,10 +23,6 @@ namespace MediaRecycler;
 public partial class DownloaderSettingsForm : Form
 {
 
-    private static readonly string SettingsFilePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "MediaRecycler", "downloader_settings.json");
-
     private readonly BindingSource bindingSource = [];
     private readonly DownloaderOptions settings = new();
 
@@ -50,22 +42,16 @@ public partial class DownloaderSettingsForm : Form
         bindingSource.DataSource = settings;
 
         // String properties
-        _ = textBoxDownloadPath.DataBindings.Add("Text", bindingSource, "DownloadPath", false,
-                    DataSourceUpdateMode.OnPropertyChanged);
-        _ = textBoxQueuePersistencePath.DataBindings.Add("Text", bindingSource, "QueuePersistencePath", false,
-                    DataSourceUpdateMode.OnPropertyChanged);
+        _ = textBoxDownloadPath.DataBindings.Add("Text", bindingSource, "DownloadPath", false, DataSourceUpdateMode.OnPropertyChanged);
+        _ = textBoxQueuePersistencePath.DataBindings.Add("Text", bindingSource, "QueuePersistencePath", false, DataSourceUpdateMode.OnPropertyChanged);
 
         // Integer properties
-        _ = textBoxMaxConcurrency.DataBindings.Add("Text", bindingSource, "MaxConcurrency", false,
-                    DataSourceUpdateMode.OnPropertyChanged);
-        _ = textBoxMaxRetries.DataBindings.Add("Text", bindingSource, "MaxRetries", false,
-                    DataSourceUpdateMode.OnPropertyChanged);
-        _ = textBoxMaxConsecutiveFailures.DataBindings.Add("Text", bindingSource, "MaxConsecutiveFailures", false,
-                    DataSourceUpdateMode.OnPropertyChanged);
+        _ = textBoxMaxConcurrency.DataBindings.Add("Text", bindingSource, "MaxConcurrency", false, DataSourceUpdateMode.OnPropertyChanged);
+        _ = textBoxMaxRetries.DataBindings.Add("Text", bindingSource, "MaxRetries", false, DataSourceUpdateMode.OnPropertyChanged);
+        _ = textBoxMaxConsecutiveFailures.DataBindings.Add("Text", bindingSource, "MaxConsecutiveFailures", false, DataSourceUpdateMode.OnPropertyChanged);
 
         // TimeSpan property (bind as seconds via helper property)
-        _ = textBoxRetryDelay.DataBindings.Add("Text", this, nameof(RetryDelaySeconds), false,
-                    DataSourceUpdateMode.OnPropertyChanged);
+        _ = textBoxRetryDelay.DataBindings.Add("Text", this, nameof(RetryDelaySeconds), false, DataSourceUpdateMode.OnPropertyChanged);
 
         // Validation event handlers
         textBoxMaxConcurrency.Validating += ValidateIntTextBox;
@@ -95,14 +81,33 @@ public partial class DownloaderSettingsForm : Form
     {
         get
         {
-            _errorProvider ??= new ErrorProvider
-            {
-                BlinkStyle = ErrorBlinkStyle.NeverBlink,
-                ContainerControl = this
-            };
+            _errorProvider ??= new ErrorProvider { BlinkStyle = ErrorBlinkStyle.NeverBlink, ContainerControl = this };
 
             return _errorProvider;
         }
+    }
+
+    private static readonly string SettingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "MediaRecycler", "downloader_settings.json");
+
+
+
+
+
+
+    private void btn_save_Click(object? sender, EventArgs e)
+    {
+        SaveSettings();
+        Close();
+    }
+
+
+
+
+
+
+    private void DownloaderSettings_FormClosing(object? sender, FormClosingEventArgs e)
+    {
+        SaveSettings();
     }
 
 
@@ -119,16 +124,6 @@ public partial class DownloaderSettingsForm : Form
 
         // Also update the RetryDelaySeconds textbox manually
         textBoxRetryDelay.Text = settings.RetryDelay.TotalSeconds.ToString(CultureInfo.InvariantCulture);
-    }
-
-
-
-
-
-
-    private void DownloaderSettings_FormClosing(object? sender, FormClosingEventArgs e)
-    {
-        SaveSettings();
     }
 
 
@@ -161,8 +156,7 @@ public partial class DownloaderSettingsForm : Form
         }
         catch (Exception ex)
         {
-            _ = MessageBox.Show("Failed to load settings: " + ex.Message, "Error", MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+            _ = MessageBox.Show("Failed to load settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
@@ -190,33 +184,11 @@ public partial class DownloaderSettingsForm : Form
         }
         catch (Exception ex)
         {
-            _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK,
-                        MessageBoxIcon.Error);
+            _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+
             if (Application.OpenForms["MainForm"] is MainForm)
             {
                 Program.Logger?.LogError(ex, "Failed to save downloader settings.");
-            }
-        }
-    }
-
-
-
-
-
-
-    // Integer validation
-    private void ValidateIntTextBox(object? sender, CancelEventArgs e)
-    {
-        if (sender is TextBox tb)
-        {
-            if (!int.TryParse(tb.Text, out var val) || val < 0)
-            {
-                e.Cancel = true;
-                errorProvider1.SetError(tb, "Please enter a valid non-negative integer.");
-            }
-            else
-            {
-                errorProvider1.SetError(tb, "");
             }
         }
     }
@@ -248,10 +220,21 @@ public partial class DownloaderSettingsForm : Form
 
 
 
-    private void btn_save_Click(object? sender, EventArgs e)
+    // Integer validation
+    private void ValidateIntTextBox(object? sender, CancelEventArgs e)
     {
-        SaveSettings();
-        Close();
+        if (sender is TextBox tb)
+        {
+            if (!int.TryParse(tb.Text, out var val) || val < 0)
+            {
+                e.Cancel = true;
+                errorProvider1.SetError(tb, "Please enter a valid non-negative integer.");
+            }
+            else
+            {
+                errorProvider1.SetError(tb, "");
+            }
+        }
     }
 
 }

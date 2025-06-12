@@ -1,22 +1,26 @@
-﻿// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
+
+
 
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 
+
+
 namespace MediaRecycler;
-
-
 
 
 public partial class PuppeteerSettingsForm : Form
 {
+
     private readonly HeadlessBrowserOptions settings;
-    private ILogger logger => Program.Logger;
+
+
+
+
+
 
     public PuppeteerSettingsForm()
     {
@@ -25,6 +29,43 @@ public partial class PuppeteerSettingsForm : Form
         settings = HeadlessBrowserOptions.Default;
         BindControlsToSettings();
     }
+
+
+
+
+
+
+    private ILogger logger => Program.Logger;
+
+
+
+
+
+
+    private void AcceptButton_Click(object sender, EventArgs e)
+    {
+        // This method can be used to handle the Accept button click event
+        // For example, you might want to validate settings or perform an action before closing the form.
+        try
+        {
+            settings.SaveSettings();
+            logger.LogInformation("Puppeteer settings saved successfully.");
+            _ = MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            Close(); // Close the form after saving
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to save Puppeteer settings.");
+            _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+
+    }
+
+
+
+
+
+
     private void BindControlsToSettings()
 
     {
@@ -56,12 +97,25 @@ public partial class PuppeteerSettingsForm : Form
         // If you add more properties/controls, repeat the pattern above.
     }
 
-    public void FormLoad(object sender, EventArgs e)
+
+
+
+
+
+    private void CancelButton_Click(object sender, EventArgs e)
     {
-        // This method can be used to initialize any additional settings or UI elements
-        // when the form is loaded.
-        logger.LogInformation("PuppeteerSettingsForm loaded with settings");
+        // This method can be used to handle the Cancel button click event
+        // For example, you might want to discard changes or simply close the form.
+        settings.ReloadSettings(); // Reload settings to discard changes made in the form
+        logger.LogInformation("Puppeteer settings reloaded, discarding changes.");
+        Close(); // Close the form without saving changes
+
     }
+
+
+
+
+
 
     public new void FormClosing(object sender, FormClosingEventArgs e)
     {
@@ -80,32 +134,16 @@ public partial class PuppeteerSettingsForm : Form
         }
     }
 
-    private void AcceptButton_Click(object sender, EventArgs e)
-    {
-        // This method can be used to handle the Accept button click event
-        // For example, you might want to validate settings or perform an action before closing the form.
-        try
-        {
-            settings.SaveSettings();
-            logger.LogInformation("Puppeteer settings saved successfully.");
-            _ = MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            this.Close(); // Close the form after saving
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to save Puppeteer settings.");
-            _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        }
 
+
+
+
+
+    public void FormLoad(object sender, EventArgs e)
+    {
+        // This method can be used to initialize any additional settings or UI elements
+        // when the form is loaded.
+        logger.LogInformation("PuppeteerSettingsForm loaded with settings");
     }
 
-    private void CancelButton_Click(object sender, EventArgs e)
-    {
-        // This method can be used to handle the Cancel button click event
-        // For example, you might want to discard changes or simply close the form.
-        settings.ReloadSettings(); // Reload settings to discard changes made in the form
-        logger.LogInformation("Puppeteer settings reloaded, discarding changes.");
-        this.Close(); // Close the form without saving changes
-
-    }
 }

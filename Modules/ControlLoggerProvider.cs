@@ -1,8 +1,4 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -39,17 +35,17 @@ public class ControlLoggerProvider : ILoggerProvider
 
 
 
+    public void Dispose() { }
+
+
+
+
+
+
     public ILogger CreateLogger(string categoryName)
     {
         return _loggers.GetOrAdd(categoryName, name => new ControlLogger(_control, _minLogLevel, name));
     }
-
-
-
-
-
-
-    public void Dispose() { }
 
 }
 
@@ -98,8 +94,7 @@ public class ControlLogger : ILogger
 
 
 
-    void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-        Func<TState, Exception?, string> formatter)
+    void ILogger.Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
     {
         if (!IsEnabled(logLevel))
         {
@@ -118,9 +113,9 @@ public class ControlLogger : ILogger
             message += Environment.NewLine + exception;
         }
 
-        if (_control.InvokeRequired)
+        if (_control.InvokeRequired && (!_control.IsDisposed || !_control.Disposing))
         {
-            _control.Invoke(() => AppendText(message));
+            _control.BeginInvoke(() => AppendText(message));
         }
         else
         {
@@ -138,10 +133,14 @@ public class ControlLogger : ILogger
         if (_control is RichTextBox rtb)
         {
             rtb.AppendText(message + Environment.NewLine);
+            rtb.SelectionStart = rtb.TextLength;
+            rtb.ScrollToCaret();
         }
         else if (_control is TextBox tb)
         {
             tb.AppendText(message + Environment.NewLine);
+            tb.SelectionStart = tb.TextLength;
+            tb.ScrollToCaret();
         }
     }
 
@@ -153,11 +152,11 @@ public class ControlLogger : ILogger
     private class NullScope : IDisposable
     {
 
-        public static readonly NullScope Instance = new();
-
         private NullScope() { }
 
         public void Dispose() { }
+
+        public static readonly NullScope Instance = new();
 
     }
 

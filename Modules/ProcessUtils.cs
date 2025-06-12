@@ -1,8 +1,7 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
+
+
 
 #region Header
 
@@ -60,32 +59,26 @@ public static class ProcessUtils
         logger.LogInformation("Attempting to find and kill processes named '{ProcessName}'...", processName);
 
         // Get all processes and filter manually for case-insensitivity and robustness
-        var processesToKill = Process.GetProcesses()
-            .Where(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
+        var processesToKill = Process.GetProcesses().Where(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
 
         foreach (var process in processesToKill)
         {
             try
             {
-                logger.LogDebug("Attempting to kill process ID: {ProcessId}, Name: {ProcessName}", process.Id,
-                    process.ProcessName);
+                logger.LogDebug("Attempting to kill process ID: {ProcessId}, Name: {ProcessName}", process.Id, process.ProcessName);
                 process.Kill(true); // Attempt to kill the entire process tree
                 _ = process.WaitForExit(5000); // Wait briefly for the process to exit
                 logger.LogInformation("Successfully killed process ID: {ProcessId}", process.Id);
                 killedCount++;
             }
-            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or
-                                           NotSupportedException)
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
             {
-                logger.LogWarning(ex,
-                    "Failed to kill process ID: {ProcessId}. It might have already exited or access was denied.",
-                    process.Id);
+                logger.LogWarning(ex, "Failed to kill process ID: {ProcessId}. It might have already exited or access was denied.", process.Id);
             }
             finally { process.Dispose(); } // Release process resources
         }
 
-        logger.LogInformation("Finished killing processes. Terminated {KilledCount} processes named '{ProcessName}'.",
-            killedCount, processName);
+        logger.LogInformation("Finished killing processes. Terminated {KilledCount} processes named '{ProcessName}'.", killedCount, processName);
         return killedCount;
     }
 

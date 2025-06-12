@@ -1,8 +1,4 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -60,8 +56,7 @@ public class FileLogger : ILogger
 
 
 
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
-        Func<TState, Exception, string> formatter)
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception, string> formatter)
     {
         if (!IsEnabled(logLevel))
         {
@@ -77,8 +72,7 @@ public class FileLogger : ILogger
         // The formatter delegate is Func<TState, Exception?, string>, so it's designed to handle a null exception.
         // Pass the original exception (which can be null) directly.
 #pragma warning disable CS8604 // Possible null reference argument.
-        _ = messageBuilder.Append(
-            $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}");
+        _ = messageBuilder.Append($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}");
 #pragma warning restore CS8604 // Possible null reference argument.
 
         if (exception != null)
@@ -113,11 +107,6 @@ public class FileLogger : ILogger
     private class FileLoggerScope : IDisposable
     {
 
-        private static readonly AsyncLocal<Stack<FileLoggerScope>> _currentScopes = new();
-
-
-
-
 
 
         public FileLoggerScope(object state)
@@ -145,15 +134,6 @@ public class FileLogger : ILogger
             get;
         }
 
-        public static FileLoggerScope? Current
-        {
-            get
-            {
-                var stack = _currentScopes.Value;
-                return stack != null && stack.Count > 0 ? stack.Peek() : null;
-            }
-        }
-
 
 
 
@@ -166,6 +146,22 @@ public class FileLogger : ILogger
             if (stack != null && stack.Count > 0)
             {
                 _ = stack.Pop();
+            }
+        }
+
+
+
+
+
+
+        private static readonly AsyncLocal<Stack<FileLoggerScope>> _currentScopes = new();
+
+        public static FileLoggerScope? Current
+        {
+            get
+            {
+                var stack = _currentScopes.Value;
+                return stack != null && stack.Count > 0 ? stack.Peek() : null;
             }
         }
 

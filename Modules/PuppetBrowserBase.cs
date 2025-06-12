@@ -1,8 +1,4 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -76,87 +72,6 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
     /// <summary>
-    ///     Initializes the Puppeteer browser instance asynchronously.
-    ///     If the browser is already initialized, this method will return without creating a new instance.
-    /// </summary>
-    /// <exception cref="Exception">Propagates exceptions from PuppeteerSharp during browser launch.</exception>
-    public virtual async Task InitializeAsync(HeadlessBrowserOptions launchOptions)
-    {
-        _launchOptions = launchOptions;
-
-        // Prevent re-initialization
-        if (Browser != null)
-        {
-            _browserLogger.LogWarning("InitializeAsync called but browser is already initialized.");
-            return;
-        }
-
-        if (_disposed)
-        {
-            _browserLogger.LogError("InitializeAsync called on a disposed instance.");
-            throw new ObjectDisposedException(nameof(PuppetBrowserBase));
-        }
-
-        ArgumentNullException.ThrowIfNull(launchOptions, nameof(launchOptions));
-
-
-
-        var fetcher = Puppeteer.CreateBrowserFetcher(new BrowserFetcherOptions());
-        var browserTask = fetcher.DownloadAsync();
-        _browserLogger.LogInformation("BrowserFetcher downloaded version: {Version}", browserTask);
-
-        // Check if the browser is already downloaded
-
-        _ = await browserTask;
-
-        _launchOptions.ExecutablePath = browserTask.Result.GetExecutablePath();
-
-        try
-        {
-            _browserLogger.LogInformation("Initializing browser...");
-
-            //_browserLogger.LogDebug("Using LaunchOptions: Headless={Headless}, Width={Width}, Height={Height}",
-
-
-            //_launchOptions.ExecutablePath = fetcher.GetExecutablePath(browserTask.ToString());
-
-            // Initialize the browser with the provided launch options
-            //  var dargs = Puppeteer.GetDefaultArgs();
-            Browser = await Puppeteer.LaunchAsync(new LaunchOptions
-            {
-                Headless = _launchOptions.Headless,
-                DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
-                ExecutablePath = _launchOptions.ExecutablePath,
-
-                //Args = _launchOptions.Args ?? new string[0], // Use provided args or empty array if null
-                Timeout = _launchOptions.Timeout // Set timeout for browser launch
-
-
-            });
-
-
-
-
-            //Browser = await Puppeteer.LaunchAsync(_launchOptions);
-            Browser.DefaultWaitForTimeout = 60_000;
-
-            _browserLogger.LogInformation("Browser initialized successfully. Endpoint: {Endpoint}",
-                        Browser.WebSocketEndpoint);
-        }
-        catch (Exception ex)
-        {
-            _browserLogger.LogError(ex, "Error initializing browser.");
-            Browser = null; // Ensure browser is null if initialization fails
-            throw; // Re-throw the exception after logging
-        }
-    }
-
-
-
-
-
-
-    /// <summary>
     ///     Placeholder method intended for setting up network monitoring.
     ///     This base implementation throws NotImplementedException.
     ///     Derived classes can override this to provide specific monitoring logic.
@@ -221,6 +136,86 @@ public class PuppetBrowserBase : IAsyncDisposable
         else
         {
             _browserLogger.LogDebug("DisposeAsync called on an already disposed instance.");
+        }
+    }
+
+
+
+
+
+
+    /// <summary>
+    ///     Initializes the Puppeteer browser instance asynchronously.
+    ///     If the browser is already initialized, this method will return without creating a new instance.
+    /// </summary>
+    /// <exception cref="Exception">Propagates exceptions from PuppeteerSharp during browser launch.</exception>
+    public virtual async Task InitializeAsync(HeadlessBrowserOptions launchOptions)
+    {
+        _launchOptions = launchOptions;
+
+        // Prevent re-initialization
+        if (Browser != null)
+        {
+            _browserLogger.LogWarning("InitializeAsync called but browser is already initialized.");
+            return;
+        }
+
+        if (_disposed)
+        {
+            _browserLogger.LogError("InitializeAsync called on a disposed instance.");
+            throw new ObjectDisposedException(nameof(PuppetBrowserBase));
+        }
+
+        ArgumentNullException.ThrowIfNull(launchOptions, nameof(launchOptions));
+
+
+
+        var fetcher = Puppeteer.CreateBrowserFetcher(new BrowserFetcherOptions());
+        var browserTask = fetcher.DownloadAsync();
+        _browserLogger.LogInformation("BrowserFetcher downloaded version: {Version}", browserTask);
+
+        // Check if the browser is already downloaded
+
+        _ = await browserTask;
+
+        _launchOptions.ExecutablePath = browserTask.Result.GetExecutablePath();
+
+        try
+        {
+            _browserLogger.LogInformation("Initializing browser...");
+
+            //_browserLogger.LogDebug("Using LaunchOptions: Headless={Headless}, Width={Width}, Height={Height}",
+
+
+            //_launchOptions.ExecutablePath = fetcher.GetExecutablePath(browserTask.ToString());
+
+            // Initialize the browser with the provided launch options
+            //  var dargs = Puppeteer.GetDefaultArgs();
+            Browser = await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                        Headless = _launchOptions.Headless,
+                        DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
+                        ExecutablePath = _launchOptions.ExecutablePath,
+
+                        //Args = _launchOptions.Args ?? new string[0], // Use provided args or empty array if null
+                        Timeout = _launchOptions.Timeout // Set timeout for browser launch
+
+
+            });
+
+
+
+
+            //Browser = await Puppeteer.LaunchAsync(_launchOptions);
+            Browser.DefaultWaitForTimeout = 60_000;
+
+            _browserLogger.LogInformation("Browser initialized successfully. Endpoint: {Endpoint}", Browser.WebSocketEndpoint);
+        }
+        catch (Exception ex)
+        {
+            _browserLogger.LogError(ex, "Error initializing browser.");
+            Browser = null; // Ensure browser is null if initialization fails
+            throw; // Re-throw the exception after logging
         }
     }
 

@@ -1,8 +1,7 @@
-﻿// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+
+
+
 
 #region Header
 
@@ -16,22 +15,17 @@
 
 using System.Configuration;
 
+using PuppeteerSharp;
+
+
+
+// ReSharper disable InconsistentNaming
+
 namespace MediaRecycler.Modules.Options;
+
 
 public class HeadlessBrowserOptions : ApplicationSettingsBase
 {
-    private static HeadlessBrowserOptions? _defaultInstance;
-    public static HeadlessBrowserOptions Default
-    {
-        get
-        {
-            _defaultInstance ??= (HeadlessBrowserOptions)Synchronized(new HeadlessBrowserOptions());
-            return _defaultInstance;
-        }
-    }
-
-    public void SaveSettings() => Save();
-    public void ReloadSettings() => Reload();
 
     [UserScopedSetting]
     [DefaultSettingValue("true")]
@@ -66,7 +60,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool Devtools
     {
-        get => this[nameof(Devtools)] is bool v && v;
+        get => this[nameof(Devtools)] is bool and true;
         set => this[nameof(Devtools)] = value;
     }
 
@@ -81,7 +75,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool IgnoreHTTPSErrors
     {
-        get => this[nameof(IgnoreHTTPSErrors)] is bool v && v;
+        get => this[nameof(IgnoreHTTPSErrors)] is bool and true;
         set => this[nameof(IgnoreHTTPSErrors)] = value;
     }
 
@@ -97,7 +91,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool DumpIO
     {
-        get => this[nameof(DumpIO)] is bool v && v;
+        get => this[nameof(DumpIO)] is bool and true;
         set => this[nameof(DumpIO)] = value;
     }
 
@@ -133,7 +127,7 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool IgnoreDefaultArgs
     {
-        get => this[nameof(IgnoreDefaultArgs)] is bool v && v;
+        get => this[nameof(IgnoreDefaultArgs)] is bool and true;
         set => this[nameof(IgnoreDefaultArgs)] = value;
     }
 
@@ -225,9 +219,54 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
     [DefaultSettingValue("false")]
     public bool NoSandbox
     {
-        get => this[nameof(NoSandbox)] is bool v && v;
+        get => this[nameof(NoSandbox)] is bool and true;
         set => this[nameof(NoSandbox)] = value;
     }
 
+    private static HeadlessBrowserOptions? _defaultInstance;
+
+    public static HeadlessBrowserOptions Default
+    {
+        get
+        {
+            _defaultInstance ??= (HeadlessBrowserOptions)Synchronized(new HeadlessBrowserOptions());
+            return _defaultInstance;
+        }
+    }
+
+    public void ReloadSettings() => Reload();
+
+    public void SaveSettings() => Save();
+
     // ...repeat for all other properties, using [UserScopedSetting] and [DefaultSettingValue] as needed...
+
+
+
+
+
+
+    public LaunchOptions ToLaunchOptions()
+    {
+
+        return new LaunchOptions
+        {
+                    Headless = Headless,
+                    ExecutablePath = ExecutablePath,
+
+                    // Args = string.IsNullOrWhiteSpace(Args) ? null : Args.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                    UserDataDir = UserDataDir,
+                    Devtools = Devtools,
+                    DefaultViewport = null, // Set if you have a DefaultViewport object, otherwise null
+
+                    Timeout = Timeout,
+                    DumpIO = DumpIO,
+                    IgnoreDefaultArgs = IgnoreDefaultArgs,
+                    IgnoredDefaultArgs = string.IsNullOrWhiteSpace(IgnoredDefaultArgs) ? null : IgnoredDefaultArgs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+
+
+                    // Add other mappings as needed
+                    // Note: Some properties may not exist in LaunchOptions or may require conversion
+        };
+    }
+
 }

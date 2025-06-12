@@ -1,8 +1,4 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
-// Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
-// Do not remove file headers
+// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
 
 
 
@@ -57,6 +53,93 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
 
 
     /// <summary>
+    ///     Internal helper to safely close and dispose a page instance.
+    /// </summary>
+    /// <param name="pageToDispose">The page instance to close and dispose.</param>
+    private async Task CloseAndDisposePageInternalAsync(IPage? pageToDispose)
+    {
+        // Avoid operations on null or already closed/disposed pages.
+        // Note: DisposeAsync generally handles closed pages gracefully, but explicit checks add clarity.
+        if (pageToDispose == null || pageToDispose.IsClosed)
+        {
+            _pageLogger.LogDebug("CloseAndDisposePageInternalAsync called with null or already closed page.");
+
+            // Attempt disposal anyway, as DisposeAsync should be idempotent or handle disposed state.
+            if (pageToDispose != null)
+            {
+                try
+                {
+                    await pageToDispose.DisposeAsync();
+                }
+                catch (Exception ex)
+                {
+                    _pageLogger.LogWarning(ex, "Exception during DisposeAsync on an already closed or potentially disposed page. Swallowing.");
+                }
+            }
+
+            return;
+        }
+
+        try
+        {
+            _pageLogger.LogDebug("Closing page (Page.CloseAsync)...");
+
+            // Although DisposeAsync often implies CloseAsync, calling it explicitly can sometimes
+            // help ensure cleaner shutdown depending on the state Puppeteer leaves the page in.
+            // It's generally safe to call both.
+            await pageToDispose.CloseAsync();
+            _pageLogger.LogDebug("Page closed. Disposing page (Page.DisposeAsync)...");
+            await pageToDispose.DisposeAsync();
+            _pageLogger.LogDebug("Page disposed successfully.");
+        }
+        catch (Exception ex)
+        {
+            // Log errors during cleanup, but don't let them stop the disposal process.
+            _pageLogger.LogError(ex, "Error occurred during explicit closing or disposing of the Puppeteer page. Swallowing exception to ensure disposal continues.");
+
+            // Attempt DisposeAsync again in case CloseAsync failed but Dispose might work, or vice-versa.
+            // This is defensive; Puppeteer's DisposeAsync should ideally handle prior failures.
+            try
+            {
+                await pageToDispose.DisposeAsync();
+            }
+            catch
+            {
+                /* Ignore secondary exception */
+            }
+        }
+    }
+
+
+
+
+
+
+    /// <summary>
+    ///     Explicitly closes and disposes the currently managed page, if it exists and is open.
+    ///     This is useful for scenarios where you want to release page resources before the entire
+    ///     PuppetPageBase instance is disposed.
+    /// </summary>
+    public async Task ClosePageAsync()
+    {
+        if (Page != null && !Page.IsClosed)
+        {
+            _pageLogger.LogInformation("Closing and disposing page explicitly via ClosePageAsync().");
+            await CloseAndDisposePageInternalAsync(Page);
+            Page = null; // Set Page reference to null after disposal.
+        }
+        else
+        {
+            _pageLogger.LogDebug("ClosePageAsync called, but the page was already null or closed.");
+        }
+    }
+
+
+
+
+
+
+    /// <summary>
     ///     Creates a new Puppeteer Page within the browser context.
     ///     Ensures the underlying browser context is created first.
     ///     If a page already exists and is open, it will be closed and disposed before creating the new one.
@@ -81,8 +164,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
         // Ensure any previously managed page by this instance is cleaned up.
         if (Page != null && !Page.IsClosed)
         {
-            _pageLogger.LogWarning(
-                "An existing page instance was found and is open. Closing and disposing it before creating a new one.");
+            _pageLogger.LogWarning("An existing page instance was found and is open. Closing and disposing it before creating a new one.");
             await CloseAndDisposePageInternalAsync(Page); // Use helper to avoid code duplication
         }
 
@@ -135,30 +217,6 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
 
 
 
-    /// <summary>
-    ///     Explicitly closes and disposes the currently managed page, if it exists and is open.
-    ///     This is useful for scenarios where you want to release page resources before the entire
-    ///     PuppetPageBase instance is disposed.
-    /// </summary>
-    public async Task ClosePageAsync()
-    {
-        if (Page != null && !Page.IsClosed)
-        {
-            _pageLogger.LogInformation("Closing and disposing page explicitly via ClosePageAsync().");
-            await CloseAndDisposePageInternalAsync(Page);
-            Page = null; // Set Page reference to null after disposal.
-        }
-        else
-        {
-            _pageLogger.LogDebug("ClosePageAsync called, but the page was already null or closed.");
-        }
-    }
-
-
-
-
-
-
     // --- IAsyncDisposable Implementation ---
 
 
@@ -202,71 +260,6 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
 
 
     /// <summary>
-    ///     Internal helper to safely close and dispose a page instance.
-    /// </summary>
-    /// <param name="pageToDispose">The page instance to close and dispose.</param>
-    private async Task CloseAndDisposePageInternalAsync(IPage? pageToDispose)
-    {
-        // Avoid operations on null or already closed/disposed pages.
-        // Note: DisposeAsync generally handles closed pages gracefully, but explicit checks add clarity.
-        if (pageToDispose == null || pageToDispose.IsClosed)
-        {
-            _pageLogger.LogDebug("CloseAndDisposePageInternalAsync called with null or already closed page.");
-
-            // Attempt disposal anyway, as DisposeAsync should be idempotent or handle disposed state.
-            if (pageToDispose != null)
-            {
-                try
-                {
-                    await pageToDispose.DisposeAsync();
-                }
-                catch (Exception ex)
-                {
-                    _pageLogger.LogWarning(ex,
-                        "Exception during DisposeAsync on an already closed or potentially disposed page. Swallowing.");
-                }
-            }
-
-            return;
-        }
-
-        try
-        {
-            _pageLogger.LogDebug("Closing page (Page.CloseAsync)...");
-
-            // Although DisposeAsync often implies CloseAsync, calling it explicitly can sometimes
-            // help ensure cleaner shutdown depending on the state Puppeteer leaves the page in.
-            // It's generally safe to call both.
-            await pageToDispose.CloseAsync();
-            _pageLogger.LogDebug("Page closed. Disposing page (Page.DisposeAsync)...");
-            await pageToDispose.DisposeAsync();
-            _pageLogger.LogDebug("Page disposed successfully.");
-        }
-        catch (Exception ex)
-        {
-            // Log errors during cleanup, but don't let them stop the disposal process.
-            _pageLogger.LogError(ex,
-                "Error occurred during explicit closing or disposing of the Puppeteer page. Swallowing exception to ensure disposal continues.");
-
-            // Attempt DisposeAsync again in case CloseAsync failed but Dispose might work, or vice-versa.
-            // This is defensive; Puppeteer's DisposeAsync should ideally handle prior failures.
-            try
-            {
-                await pageToDispose.DisposeAsync();
-            }
-            catch
-            {
-                /* Ignore secondary exception */
-            }
-        }
-    }
-
-
-
-
-
-
-    /// <summary>
     ///     Asynchronously waits for the Page's 'Error' event to occur.
     ///     Handles cancellation requests and potential race conditions with page closure.
     /// </summary>
@@ -289,8 +282,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
             _pageLogger.LogWarning("WaitForError called but Page is null or already closed.");
 
             // Return a faulted task immediately for invalid state.
-            return Task.FromException<ErrorEventArgs>(
-                new InvalidOperationException("Cannot wait for error: Page is not initialized or has been closed."));
+            return Task.FromException<ErrorEventArgs>(new InvalidOperationException("Cannot wait for error: Page is not initialized or has been closed."));
         }
 
         TaskCompletionSource<ErrorEventArgs> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -357,14 +349,11 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
             if (currentPage.IsClosed)
             {
                 _pageLogger.LogWarning("Page closed after initial check but before subscribing to the Error event.");
-                return Task.FromException<ErrorEventArgs>(
-                    new InvalidOperationException(
-                        "Page closed while attempting to wait for error event subscription."));
+                return Task.FromException<ErrorEventArgs>(new InvalidOperationException("Page closed while attempting to wait for error event subscription."));
             }
 
             // Must be cancellation requested
-            _pageLogger.LogDebug(
-                "Cancellation requested after initial check but before subscribing to the Error event.");
+            _pageLogger.LogDebug("Cancellation requested after initial check but before subscribing to the Error event.");
             return Task.FromCanceled<ErrorEventArgs>(cancellationToken);
         }
 
@@ -398,9 +387,7 @@ public class PuppetPageBase : PuppetBrowserContextBase, IAsyncDisposable
                 _pageLogger.LogWarning("Page closed immediately after subscribing to the Error event.");
 
                 // Complete the task exceptionally, consistent with other closure cases.
-                _ = tcs.TrySetException(
-                    new InvalidOperationException(
-                        "Page closed immediately after waiting for error event subscription."));
+                _ = tcs.TrySetException(new InvalidOperationException("Page closed immediately after waiting for error event subscription."));
             }
             else
             {
