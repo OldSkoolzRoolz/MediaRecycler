@@ -29,6 +29,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
     {
 
         _logger = logger;
+        
     }
 
 

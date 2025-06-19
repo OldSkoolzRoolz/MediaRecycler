@@ -115,7 +115,7 @@ public class ControlLogger : ILogger
 
         if (_control.InvokeRequired && (!_control.IsDisposed || !_control.Disposing))
         {
-            _control.BeginInvoke(() => AppendText(message));
+            _ = _control.BeginInvoke(() => AppendText(message));
         }
         else
         {

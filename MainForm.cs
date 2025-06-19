@@ -1,12 +1,19 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
 
 using MediaRecycler.Modules;
+using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
+
+using PuppeteerSharp;
 
 
 
@@ -18,7 +25,9 @@ public partial class MainForm : Form
 
     private readonly IEventAggregator _aggregator = new EventAggregator();
     private readonly ILogger<MainForm> _logger;
-    private PuppeteerManager? _puppeteerManager;
+    private UrlDownloader _downloadManager;
+    private IScraper _scraper;
+
 
 
 
@@ -54,6 +63,7 @@ public partial class MainForm : Form
         // subscribe to the aggregator for the events we are interested in and assign the handlers
         _aggregator.Subscribe<StatusMessage>(OnStatusMessageReceived);
         _aggregator.Subscribe<PageNumberMessage>(OnPageCountUpdates);
+        _aggregator.Subscribe<QueueCountMessage>(OnQueueCountUpdates);
 
 
 
@@ -66,9 +76,11 @@ public partial class MainForm : Form
 
 
 
+
 #pragma warning disable IDE0032
     public RichTextBox MainLogRichTextBox => rtb_main;
 #pragma warning restore IDE0032
+
 
 
 
@@ -94,60 +106,6 @@ public partial class MainForm : Form
 
 
 
-    private async void btn_5_Click(object sender, EventArgs e)
-    {
-        try
-        {
-            if (_puppeteerManager == null)
-            {
-                _puppeteerManager = await PuppeteerManager.CreateAsync(_aggregator);
-                IWebAutomationService automationService = new PuppeteerAutomationService(_puppeteerManager?.Page ?? throw new InvalidOperationException("PuppeteerManager is not initialized."), _aggregator);
-                await automationService.GoToAsync(ScrapingOptions.Default.StartingWebPage!);
-                await automationService.DoSiteLoginAsync();
-            }
-        }
-        catch (Exception exception)
-        {
-            _ = MessageBox.Show(exception.Message);
-
-            if (_puppeteerManager != null)
-            {
-                await _puppeteerManager.DisposeAsync();
-            }
-
-        }
-
-
-
-    }
-
-
-
-
-
-
-    private async void btn_8_Click(object sender, EventArgs e)
-    {
-        try
-        {
-            if (_puppeteerManager != null)
-            {
-
-                await _puppeteerManager.DisposeAsync();
-            }
-
-            SetStatusLabelText(this, "PuppeteerManager has been disposed.");
-        }
-        catch (Exception exception)
-        {
-            AppendToMainViewer(this, exception.Message);
-        }
-    }
-
-
-
-
-
 
     /// <summary>
     ///     Handles the click event for the download button. Gets the Download services from DI container and calls the Start()
@@ -161,110 +119,54 @@ public partial class MainForm : Form
     /// <param name="e">An <see cref="EventArgs" /> object containing event data.</param>
     private async void btn_download_Click(object sender, EventArgs e)
     {
-        DownloaderModule? downloadManager = null!;
+        _downloadManager = new UrlDownloader(_aggregator);
+
+        // --- Subscribe to Events ---
+        _downloadManager.DownloadCompleted += (o, args) =>
+        {
+            _logger.LogInformation($"[SUCCESS] Downloaded: {args.Url}");
+            _logger.LogInformation($"          -> Saved to: {args.FilePath}");
+            _logger.LogInformation($"          -> Size: {args.FileSizeBytes / 1024.0:F2} KB");
+        };
+
+        _downloadManager.DownloadFailed += (o, downloadFailedEventArgs) =>
+        {
+            _logger.LogInformation($"[FAILURE] Failed: {downloadFailedEventArgs.Url}");
+            _logger.LogInformation($"          -> Reason: {downloadFailedEventArgs.Exception.Message}");
+        };
+
+        _downloadManager.QueueFinished += (o, args) => { _logger.LogInformation("\n--- All downloads have been processed. ---"); };
 
         try
         {
             _logger?.LogInformation("Download button clicked.");
 
+
             // Example: If you have a DownloadManager or similar service, you would resolve and start it here.
             // This is a placeholder for actual download logic.
             AppendToMainViewer(this, "Starting download process...");
+            await _downloadManager.LoadQueueAsync();
 
-            downloadManager = await DownloaderModule.CreateAsync(_logger);
-            downloadManager.StatusUpdated += AppendToMainViewer;
-            downloadManager.DownloadQueCountUpdated += DlQueUpdated;
-            downloadManager.Start();
-            SetStatusLabelText(this, "Download manager started.");
+            SetStatusLabelText(this, "Download manager running...");
+            await _downloadManager.StartDownloadsAsync();
 
-            while (downloadManager.IsRunning)
-            {
-                // Wait for the download to complete or for a cancellation request
-                await Task.Delay(1000); // Adjust the delay as needed
-            }
 
+            SetStatusLabelText(this, "Download Manager is complete.");
 
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error starting download process.");
-            AppendToMainViewer(this, $"Error starting download: {ex.Message}");
+            await _downloadManager.SaveQueueAsync();
+            _logger?.LogError(ex, "Error running download process.");
+            AppendToMainViewer(this, $"Error running download: {ex.Message}");
             SetStatusLabelText(this, "Download failed.");
-        }
-        finally
-        {
-            downloadManager.StatusUpdated -= AppendToMainViewer;
-            downloadManager.DownloadQueCountUpdated -= DlQueUpdated;
-
-            await downloadManager.DisposeAsync();
-
-        }
-    }
-
-
-
-
-
-
-    /// <summary>
-    ///     Handles the click event for the "Get Page" button, initiating the web scraping process.
-    /// </summary>
-    /// <remarks>
-    ///     This method performs the following actions:
-    ///     <list type="bullet">
-    ///         <item>
-    ///             <description>Initializes the scraping components asynchronously.</description>
-    ///         </item>
-    ///         <item>
-    ///             <description>Subscribes to status and log update events for real-time feedback.</description>
-    ///         </item>
-    ///         <item>
-    ///             <description>Executes the scraping process to retrieve the page source.</description>
-    ///         </item>
-    ///         <item>
-    ///             <description>
-    ///                 Logs any errors encountered during the process and ensures proper
-    ///                 cleanup.
-    ///             </description>
-    ///         </item>
-    ///     </list>
-    ///     The button's active status is toggled at the start and end of the
-    ///     operation.
-    /// </remarks>
-    /// <param name="sender">The source of the event, typically the button that was clicked.</param>
-    /// <param name="e">The event data associated with the click event.</param>
-    private async void btn_GetPage_Click(object sender, EventArgs e)
-    {
-        Scrapers scraperso = null!;
-
-
-        try
-        {
-            //_scrapers = await Scrapers.CreateAsync(_launcherSettings, _scraperSettings, _downloaderSettings, _logger);
-            // _scrapers.StatusBarUpdated += SetStatusLabelText;
-            // _scrapers.MainLogUpdated += AppendToMainViewer;
-
-
-            await scraperso.GetPageSourceAsync();
-
-
-
-
-
-        }
-        catch (Exception exception)
-        {
-            _logger?.LogError(exception, "An error occurred during scraping initialization.");
 
         }
         finally
         {
-            SetStatusLabelText(this, "Scraping Complete");
-            _logger?.LogInformation("Scraping process finished.");
-            await scraperso.DisposeAsync();
+            await _downloadManager.DisposeAsync();
+
         }
-
-
     }
 
 
@@ -272,34 +174,36 @@ public partial class MainForm : Form
 
 
 
-    private async void btn_scrape_Click(object sender, EventArgs e)
+
+    private async void btn_QueueVids_Click(object sender, EventArgs e)
     {
+
+
         try
         {
-
-            await using var manager = await PuppeteerManager.CreateAsync(_aggregator);
-
-            if (manager == null)
-            {
-                MessageBox.Show("Unable to initialize the browser object.");
-                return;
-            }
-
-            IWebAutomationService automationService = new PuppeteerAutomationService(manager.Page!, _aggregator);
-
-            BlogScraper scraper = new(automationService, _aggregator, _logger);
-
-            await scraper.DownloadCollectLinksAsync();
+            _aggregator.Publish(new StatusMessage("Queuing videos..."));
 
 
+            IBlogScraper scraper = new BlogScraper(_aggregator, _logger);
+            _scraper = scraper;
+
+            if (_scraper is IBlogScraper bscraper) await bscraper.DownloadCollectedLinksAsync();
 
         }
-        catch (Exception exception)
+        catch (Exception ex)
         {
-            Console.WriteLine(exception);
-            throw;
-        }
 
+            _logger.LogError(ex, "An unhandled error occured. Attempting to save progress before aborting...");
+            SetStatusLabelText(this, ex.Message);
+
+            await _scraper.CancelAsync();
+            await _scraper.DisposeAsync();
+        }
+        finally
+        {
+            _aggregator.Publish(new StatusMessage("Queuing videos complete."));
+            SetStatusLabelText(null, "Video Queue finished.");
+        }
     }
 
 
@@ -307,32 +211,29 @@ public partial class MainForm : Form
 
 
 
-    private async void Button1_Click(object sender, EventArgs e)
-    {
-        var s = sender as Button;
-        s.Enabled = false; // Disable the button to prevent multiple clicks
 
-        //ToggleActiveStatus(btn_load);
+    private async void btn_Scrape_Click(object sender, EventArgs e)
+    {
+        var button = sender as Button;
+        if (button != null)
+            await ToggleButtonsAsync(button, false);
 
         try
         {
 
-            // The 'await using' statement ensures the PuppeteerManager is always disposed correctly.
-            await using var puppeteerManager = await PuppeteerManager.CreateAsync(_aggregator);
 
             // 1. Create the automation service, injecting the page from our manager.
-            if (puppeteerManager.Page != null)
-            {
-                IWebAutomationService automationService = new PuppeteerAutomationService(puppeteerManager.Page, _aggregator);
 
-                // 2. Create the scraper, injecting the automation service.
-                await using var blogScraper = new BlogScraper(automationService, _aggregator, _logger);
+            // 2. Create the scraper, injecting the automation service.
+            IBlogScraper bScraper = new BlogScraper(_aggregator, _logger);
+            _scraper = bScraper; // Store the scraper instance in parent interface variable so it can be accessed by the form or other methods without knowing the specific type that has been created.
 
+            // This is useful for polymorphism and allows us to call methods on the interface without needing to know the concrete implementation.
 
-                // Control passed to the specific scraper implementation. each implementation can have its own logic for scraping.
-                await blogScraper.BeginScrapingTargetBlogAsync();
-            }
+            if (_scraper is IBlogScraper scraper) await scraper.BeginScrapingTargetBlogAsync();
 
+            _logger.LogCritical("Failed to initialize puppeteer manager. Restart application.");
+            SetStatusLabelText(null, "Unable to initialize puppeteerManager..");
 
 
 
@@ -345,16 +246,48 @@ public partial class MainForm : Form
         }
         finally
         {
-            //Objects created with 'await using' will be disposed automatically here.
+            //call dispose on parent interface variable to ensure the scraper is disposed of correctly.
+            if (_scraper != null)
+            {
+                await _scraper.CancelAsync();
+                await _scraper.DisposeAsync();
+
+            }
             AppendToMainViewer(this, "Example finished.");
         }
 
 
+        if (button != null)
+            await ToggleButtonsAsync(button, true);
 
-        //ToggleActiveStatus(btn_load);
-        s.Enabled = true; // Re-enable the button after the operation is complete
 
     }
+
+
+    private void chk_OnClick(object sender, EventArgs e)
+    {
+        // This method is triggered when the checkbox is clicked.
+        // It can be used to handle any specific logic related to the checkbox state change.
+        if (sender is CheckBox checkBox)
+        {
+            _logger?.LogDebug($"Checkbox '{checkBox.Name}' clicked. Checked: {checkBox.Checked}");
+            if (checkBox.Checked)
+            {
+                _logger?.LogInformation($"Checkbox '{checkBox.Name}' is checked.");
+                ScrapingOptions.Default.SinglePageScan = true;
+                ScrapingOptions.Default.SaveSettings();
+            }
+            else
+            {
+                ScrapingOptions.Default.SinglePageScan = false;
+                ScrapingOptions.Default.SaveSettings();
+                _logger?.LogInformation($"Checkbox '{checkBox.Name}' is unchecked.");
+            }
+        }
+    }
+
+
+
 
 
 
@@ -377,14 +310,13 @@ public partial class MainForm : Form
 
 
 
+
     private void downloaderSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         //Menu Click DownloaderSettings > Form opening
         DownloaderSettingsForm downloaderSettings = new();
         _ = downloaderSettings.ShowDialog(this);
 
-        _logger?.LogTrace("DownloaderSettings form closing.");
-        downloaderSettings.Close(); // Dispose of the form after use
     }
 
 
@@ -392,18 +324,38 @@ public partial class MainForm : Form
 
 
 
-    private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+
+    private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
     {
-        // Ensure PuppeteerManager is disposed when the form is closing
-        _ = _puppeteerManager?.DisposeAsync();
+        // Ensure resources are stopped and disposed of properly
+        try
+        {
 
-        _logger?.LogInformation("MainForm is closing. PuppeteerManager disposed.");
+            if (_scraper != null)
+            {
+                await _scraper.CancelAsync();
+                await _scraper.DisposeAsync();
+            }
 
-        _aggregator.Unsubscribe<StatusMessage>(OnStatusMessageReceived);
-        _aggregator.Unsubscribe<PageNumberMessage>(OnPageCountUpdates);
 
-
+            if (_downloadManager != null)
+            {
+                await _downloadManager.StopAllTasksAsync();
+                await _downloadManager.DisposeAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error during MainForm closing cleanup.");
+        }
+        finally
+        {
+            _logger?.LogInformation("MainForm is closing. PuppeteerManager disposed.");
+            _aggregator.Unsubscribe<StatusMessage>(OnStatusMessageReceived);
+            _aggregator.Unsubscribe<PageNumberMessage>(OnPageCountUpdates);
+        }
     }
+
 
 
 
@@ -420,6 +372,7 @@ public partial class MainForm : Form
 
 
 
+
     /// <summary>
     ///     A registered handler for <see cref="EventAggregator" />  Handles updates to the page count by processing the
     ///     provided <see cref="PageNumberMessage" />.
@@ -429,13 +382,30 @@ public partial class MainForm : Form
     /// </param>
     private void OnPageCountUpdates(PageNumberMessage pageNumberMessage)
     {
-        if (InvokeRequired)
-        {
-            _ = BeginInvoke(() => OnPageCountUpdates(pageNumberMessage));
-        }
+        if (InvokeRequired) _ = BeginInvoke(() => OnPageCountUpdates(pageNumberMessage));
 
         tb_pages.Text = pageNumberMessage.PageNumber.ToString();
     }
+
+
+
+
+
+
+
+    private void OnQueueCountUpdates(QueueCountMessage obj)
+    {
+        if (InvokeRequired)
+        {
+            BeginInvoke(() => OnQueueCountUpdates(obj));
+            return;
+
+
+        }
+
+        tb_dlque.Text = obj.QueueCount.ToString();
+    }
+
 
 
 
@@ -459,11 +429,13 @@ public partial class MainForm : Form
 
 
 
+
     private void puppeteerSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         PuppeteerSettingsForm puppetSettings = new();
         _ = puppetSettings.ShowDialog(this);
     }
+
 
 
 
@@ -486,6 +458,7 @@ public partial class MainForm : Form
 
 
 
+
     public void SetStatusLabelText(object? sender, string text)
     {
         if (statusStrip1.InvokeRequired) // Use the parent control's InvokeRequired property
@@ -497,4 +470,55 @@ public partial class MainForm : Form
         tsl_status.Text = text;
     }
 
+
+
+
+
+
+
+    /// <summary>
+    ///     Method to toggle the enabled state of buttons based on the sender and a boolean value.
+    ///     It also attached a cancel event handler that is appropriate for the button clicked.
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="isEnabled"></param>
+    private async Task ToggleButtonsAsync(object sender, bool isEnabled)
+    {
+        var button = sender as Button;
+
+        if (button != null)
+            switch (button.Name)
+            {
+                case nameof(btn_scrape):
+                    button.Enabled = isEnabled;
+
+                    await _scraper.CancelAsync();
+                    break;
+                case nameof(btn_download):
+                    button.Enabled = isEnabled;
+                    await _downloadManager.StopAllTasksAsync();
+                    break;
+                case nameof(btn_GetVidPages):
+                    button.Enabled = isEnabled;
+                    break;
+            }
+    }
+
+    private async void btn_Testing_Click(object sender, EventArgs e)
+    {
+        var fetcher = Puppeteer.CreateBrowserFetcher(new BrowserFetcherOptions
+        {
+                    Browser = SupportedBrowser.Chrome,
+                    Platform = null,
+                    Path = Properties.Settings.Default.MyDocumentsPath,
+                    Host = null,
+                    CustomFileDownload = null
+        });
+        var tsk =fetcher.DownloadAsync();
+        await tsk;
+        var exepath=tsk.Result.GetExecutablePath();
+        
+        Properties.Settings.Default.PuppeteerExecutablePath = exepath;
+        Properties.Settings.Default.Save();
+    }
 }

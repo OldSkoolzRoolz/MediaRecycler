@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
@@ -60,11 +64,11 @@ public class DownloaderOptions : ApplicationSettingsBase
     ///     Gets or sets the file path for queue persistence.
     /// </summary>
     [UserScopedSetting]
-    [DefaultSettingValue(DefaultQueuePersistencePath)]
-    public string QueuePersistencePath
+    [DefaultSettingValue(DefaultQueueFilename)]
+    public string QueueFilename
     {
-        get => (string)this[nameof(QueuePersistencePath)];
-        set => this[nameof(QueuePersistencePath)] = value;
+        get => (string)this[nameof(QueueFilename)];
+        set => this[nameof(QueueFilename)] = value;
     }
 
     /// <summary>
@@ -87,16 +91,11 @@ public class DownloaderOptions : ApplicationSettingsBase
     }
 
     [Browsable(false)]
-    [SettingsSerializeAs(SettingsSerializeAs.Binary)]
     public TimeSpan RetryDelay
     {
         get => TimeSpan.TryParse(RetryDelayString, out var ts) ? ts : TimeSpan.FromSeconds(5);
         set => RetryDelayString = value.ToString();
     }
-
-    private const string DefaultDownloadPath = "d:\\Downloads";
-    private const string DefaultQueuePersistencePath = "queue.json";
-    private const string DefaultRetryDelay = "00:00:05";
 
     /// <summary>
     ///     Gets the default configuration options for the downloader.
@@ -105,6 +104,32 @@ public class DownloaderOptions : ApplicationSettingsBase
     ///     The default options are thread-safe and can be used as a baseline for creating custom configurations.
     /// </remarks>
     public static DownloaderOptions Default { get; } = (DownloaderOptions)Synchronized(new DownloaderOptions());
+
+    private const string DefaultDownloadPath = "d:\\Downloads";
+    private const string DefaultQueueFilename = "queue.json";
+    private const string DefaultRetryDelay = "00:00:05";
+
+
+
+
+
+
+
+    /// <summary>
+    ///     Reloads the settings from the configuration file.
+    /// </summary>
+    public void ReloadSettings()
+    {
+        try
+        {
+            Reload();
+        }
+        catch (ConfigurationErrorsException ex)
+        {
+            throw new InvalidOperationException("Failed to reload settings.", ex);
+        }
+    }
+
 
 
 
@@ -133,57 +158,20 @@ public class DownloaderOptions : ApplicationSettingsBase
 
 
 
-    /// <summary>
-    ///     Reloads the settings from the configuration file.
-    /// </summary>
-    public void ReloadSettings()
-    {
-        try
-        {
-            Reload();
-        }
-        catch (ConfigurationErrorsException ex)
-        {
-            throw new InvalidOperationException("Failed to reload settings.", ex);
-        }
-    }
-
-
-
-
-
 
     public void Validate()
     {
-        if (string.IsNullOrWhiteSpace(DownloadPath) || !Path.IsPathRooted(DownloadPath))
-        {
-            throw new ArgumentException("DownloadPath must be a valid absolute path.");
-        }
+        if (string.IsNullOrWhiteSpace(DownloadPath) || !Path.IsPathRooted(DownloadPath)) throw new ArgumentException("DownloadPath must be a valid absolute path.");
 
-        if (MaxConcurrency is <= 0 or > 100)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxConcurrency), "MaxConcurrency must be between 1 and 100.");
-        }
+        if (MaxConcurrency is <= 0 or > 100) throw new ArgumentOutOfRangeException(nameof(MaxConcurrency), "MaxConcurrency must be between 1 and 100.");
 
-        if (MaxRetries is < 0 or > 10)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxRetries), "MaxRetries must be between 0 and 10.");
-        }
+        if (MaxRetries is < 0 or > 10) throw new ArgumentOutOfRangeException(nameof(MaxRetries), "MaxRetries must be between 0 and 10.");
 
-        if (string.IsNullOrWhiteSpace(QueuePersistencePath) || QueuePersistencePath.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
-        {
-            throw new ArgumentException("QueuePersistencePath must be a valid file path.");
-        }
 
-        if (MaxConsecutiveFailures is < 0 or > 20)
-        {
-            throw new ArgumentOutOfRangeException(nameof(MaxConsecutiveFailures), "MaxConsecutiveFailures must be between 0 and 20.");
-        }
+        if (MaxConsecutiveFailures is < 0 or > 20) throw new ArgumentOutOfRangeException(nameof(MaxConsecutiveFailures), "MaxConsecutiveFailures must be between 0 and 20.");
 
         if (!TimeSpan.TryParse(RetryDelayString, out var delay) || delay <= TimeSpan.Zero || delay > TimeSpan.FromHours(1))
-        {
             throw new ArgumentException("RetryDelay must be a valid TimeSpan greater than zero and less than or equal to 1 hour.");
-        }
     }
 
 }

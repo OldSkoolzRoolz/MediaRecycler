@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
@@ -24,6 +28,7 @@ internal static class Program
 
 
 
+
     /// <summary>
     ///     The main entry point for the application.
     /// </summary>
@@ -33,7 +38,7 @@ internal static class Program
         Application.SetCompatibleTextRenderingDefault(false);
         Application.EnableVisualStyles();
         _ = Application.SetHighDpiMode(HighDpiMode.SystemAware);
-        var configuration = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory).AddJsonFile("appsettings.json", false, true).AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", true).AddEnvironmentVariables().Build();
+        var configuration = new ConfigurationBuilder().SetBasePath(AppContext.BaseDirectory).AddEnvironmentVariables().Build();
 
         var services = new ServiceCollection();
 
@@ -52,6 +57,14 @@ internal static class Program
                  return new ControlLoggerProvider(resolvedMainForm.MainLogRichTextBox, LogLevel.Trace));
              });
         */
+
+
+        Properties.Settings.Default.MyDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        Properties.Settings.Default.Save();
+
+
+
+
 
         // Build the service provider
         using var serviceProvider = services.BuildServiceProvider();

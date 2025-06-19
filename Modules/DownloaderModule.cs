@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
@@ -47,6 +51,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Initializes a new instance of the <see cref="DownloaderModule" /> class.
     /// </summary>
@@ -54,7 +59,7 @@ public class DownloaderModule : IAsyncDisposable
     public DownloaderModule(ILogger? logger = null)
     {
         _logger = logger ?? NullLogger.Instance;
-        _queueFilePath = Path.GetFullPath(DownloaderOptions.Default.QueuePersistencePath);
+        _queueFilePath = Path.GetFullPath(DownloaderOptions.Default.QueueFilename);
         _httpClient = new HttpClient();
         ConfigureHttpClient(_httpClient);
         _urlStates = new ConcurrentDictionary<Uri, Uri>();
@@ -63,13 +68,18 @@ public class DownloaderModule : IAsyncDisposable
         _masterCts = new CancellationTokenSource();
         _workerTasks = [];
 
-        _retryPolicy = Policy.Handle<HttpRequestException>(ShouldRetryHttpRequest).Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested).WaitAndRetryAsync(DownloaderOptions.Default.MaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)), (exception, timespan, retryAttempt, context) =>
-        {
-            var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
-            _logger.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}", retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
-            return Task.CompletedTask;
-        });
+        _retryPolicy = Policy.Handle<HttpRequestException>(ShouldRetryHttpRequest).Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested)
+                    .WaitAndRetryAsync(DownloaderOptions.Default.MaxRetries,
+                                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
+                                (exception, timespan, retryAttempt, context) =>
+                                {
+                                    var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
+                                    _logger.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
+                                                retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
+                                    return Task.CompletedTask;
+                                });
     }
+
 
 
 
@@ -86,15 +96,13 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Asynchronously disposes the downloader, ensuring all resources are released and the queue is saved.
     /// </summary>
     public async ValueTask DisposeAsync()
     {
-        if (_isDisposed)
-        {
-            return;
-        }
+        if (_isDisposed) return;
 
         _isDisposed = true;
 
@@ -102,15 +110,9 @@ public class DownloaderModule : IAsyncDisposable
 
         try
         {
-            if (IsRunning)
-            {
-                await StopAsync().ConfigureAwait(false);
-            }
+            if (IsRunning) await StopAsync().ConfigureAwait(false);
 
-            if (!_masterCts.IsCancellationRequested)
-            {
-                _masterCts.Cancel();
-            }
+            if (!_masterCts.IsCancellationRequested) _masterCts.Cancel();
 
             await SaveQueueToFileAsync();
         }
@@ -133,6 +135,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Asynchronously creates a new <see cref="DownloaderModule" /> and loads the persisted queue state.
     /// </summary>
@@ -142,6 +145,7 @@ public class DownloaderModule : IAsyncDisposable
         await module.LoadQueueFromFileAsync();
         return module;
     }
+
 
 
 
@@ -162,6 +166,7 @@ public class DownloaderModule : IAsyncDisposable
             _logger.LogInformation("Processing cancellation requested due to abort condition.");
         }
     }
+
 
 
 
@@ -192,6 +197,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Downloads the specified URL with retry logic and updates the state tracking upon success or failure.
     /// </summary>
@@ -203,20 +209,18 @@ public class DownloaderModule : IAsyncDisposable
             return;
         }
 
-        var success = false;
+        bool success = false;
         _logger.LogInformation("DownloadAndHandleRetriesAsync started for {Url}", url);
 
         try
         {
-            await _retryPolicy.ExecuteAsync(async (ctx, ct) => await PerformDownloadCoreAsync(url, ct).ConfigureAwait(false), new Context { ["Url"] = url }, cancellationToken).ConfigureAwait(false);
+            await _retryPolicy.ExecuteAsync(async (ctx, ct) => await PerformDownloadCoreAsync(url, ct).ConfigureAwait(false), new Context { ["Url"] = url }, cancellationToken)
+                        .ConfigureAwait(false);
 
             success = true;
             _logger.LogInformation("Successfully downloaded {Url}", url);
 
-            if (_urlStates.TryRemove(url, out _))
-            {
-                _logger.LogTrace("Removed successfully downloaded URL from state: {Url}", url);
-            }
+            if (_urlStates.TryRemove(url, out _)) _logger.LogTrace("Removed successfully downloaded URL from state: {Url}", url);
 
             lock (_failureLock)
             {
@@ -227,29 +231,22 @@ public class DownloaderModule : IAsyncDisposable
         {
             _logger.LogInformation("Error during download attempt: {ErrorMessage}", ex);
 
-            var abort = false;
+            bool abort = false;
 
             lock (_failureLock)
             {
                 _consecutiveFailures++;
 
-                if (DownloaderOptions.Default.MaxConsecutiveFailures > 0 && _consecutiveFailures >= DownloaderOptions.Default.MaxConsecutiveFailures)
-                {
-                    abort = true;
-                }
+                if (DownloaderOptions.Default.MaxConsecutiveFailures > 0 && _consecutiveFailures >= DownloaderOptions.Default.MaxConsecutiveFailures) abort = true;
             }
 
-            if (abort)
-            {
-                await AbortProcessingAsync($"Exceeded max consecutive failures ({DownloaderOptions.Default.MaxConsecutiveFailures}).");
-            }
+            if (abort) await AbortProcessingAsync($"Exceeded max consecutive failures ({DownloaderOptions.Default.MaxConsecutiveFailures}).");
         }
 
         if (!success && !cancellationToken.IsCancellationRequested)
-        {
             _logger.LogError("Failed to download {Url} after exhausting retries or encountering a non-retried error. Skipping.", url);
-        }
     }
+
 
 
 
@@ -260,6 +257,7 @@ public class DownloaderModule : IAsyncDisposable
     ///     Raised when the download queue count changes.
     /// </summary>
     public event EventHandler<string>? DownloadQueCountUpdated;
+
 
 
 
@@ -299,6 +297,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Ensures the download directory exists, creating it if necessary.
     /// </summary>
@@ -308,9 +307,7 @@ public class DownloaderModule : IAsyncDisposable
         try
         {
             if (!Directory.Exists(DownloaderOptions.Default.DownloadPath) && DownloaderOptions.Default.DownloadPath != null)
-            {
                 _ = Directory.CreateDirectory(DownloaderOptions.Default.DownloadPath);
-            }
 
             _logger.LogTrace("Ensured download directory exists: {DownloadPath}", Path.GetFullPath(DownloaderOptions.Default.DownloadPath));
             OnStatusUpdated($"Ensured download directory exists: {Path.GetFullPath(DownloaderOptions.Default.DownloadPath)}");
@@ -323,6 +320,7 @@ public class DownloaderModule : IAsyncDisposable
             return false;
         }
     }
+
 
 
 
@@ -343,16 +341,15 @@ public class DownloaderModule : IAsyncDisposable
         try
         {
             _logger.LogInformation("Loading queue state from {QueuePath}...", _queueFilePath);
-            var json = await File.ReadAllTextAsync(_queueFilePath);
+            string json = await File.ReadAllTextAsync(_queueFilePath);
             var urlsToLoad = JsonSerializer.Deserialize<List<string>>(json);
 
             if (urlsToLoad != null)
             {
-                var loadedCount = 0;
-                var skippedCount = 0;
+                int loadedCount = 0;
+                int skippedCount = 0;
 
-                foreach (var urlString in urlsToLoad)
-                {
+                foreach (string urlString in urlsToLoad)
                     if (Uri.TryCreate(urlString, UriKind.Absolute, out var uri))
                     {
                         if (_urlStates.TryAdd(uri, uri))
@@ -371,7 +368,6 @@ public class DownloaderModule : IAsyncDisposable
                         _logger.LogWarning("Failed to parse URL from persistence file: {UrlString}", urlString);
                         skippedCount++;
                     }
-                }
 
                 _logger.LogInformation("Loaded {LoadedCount} URLs from persistence file. Skipped {SkippedCount} invalid or duplicate entries.", loadedCount, skippedCount);
             }
@@ -381,9 +377,12 @@ public class DownloaderModule : IAsyncDisposable
             _logger.LogError(ex, "Failed to load queue state from {QueuePath}. Starting with an empty queue.", _queueFilePath);
             _urlStates.Clear();
 
-            while (_workQueue.TryTake(out _)) { }
+            while (_workQueue.TryTake(out _))
+            {
+            }
         }
     }
+
 
 
 
@@ -405,10 +404,12 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Raises the <see cref="DownloadQueCountUpdated" /> event.
     /// </summary>
     private void OnDownloadQueCountUpdated(string message) => DownloadQueCountUpdated?.Invoke(this, message);
+
 
 
 
@@ -425,13 +426,14 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Performs the actual download of a file from the specified URL.
     /// </summary>
     private async Task PerformDownloadCoreAsync(Uri url, CancellationToken cancellationToken)
     {
-        var fileName = Path.GetFileName(url.ToString());
-        var filePath = Path.Combine(DownloaderOptions.Default.DownloadPath, fileName);
+        string fileName = Path.GetFileName(url.ToString());
+        string filePath = Path.Combine(DownloaderOptions.Default.DownloadPath, fileName);
 
         if (File.Exists(filePath))
         {
@@ -458,6 +460,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Saves the current state of the download queue to a file for persistence.
     /// </summary>
@@ -465,10 +468,7 @@ public class DownloaderModule : IAsyncDisposable
     {
         OnStatusUpdated("DownloaderModule::SaveQueueToFileAsync() started..");
 
-        if (_workQueue.Count == 0)
-        {
-            return;
-        }
+        if (_workQueue.Count == 0) return;
 
         var urlsToSave = _workQueue.Where(uri => uri != null).Select(uri => uri.ToString()).ToList();
 
@@ -480,7 +480,7 @@ public class DownloaderModule : IAsyncDisposable
 
         try
         {
-            var json = JsonSerializer.Serialize(urlsToSave, new JsonSerializerOptions { WriteIndented = true });
+            string json = JsonSerializer.Serialize(urlsToSave, new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(_queueFilePath, json).ConfigureAwait(false);
             _logger.LogInformation("Queue state saved successfully. {UrlCount} URLs saved to {QueuePath}.", urlsToSave.Count, _queueFilePath);
         }
@@ -499,19 +499,18 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Determines whether an HTTP request should be retried based on the exception.
     /// </summary>
     private bool ShouldRetryHttpRequest(HttpRequestException ex)
     {
-        if (ex.StatusCode is null or HttpStatusCode.Forbidden)
-        {
-            return false;
-        }
+        if (ex.StatusCode is null or HttpStatusCode.Forbidden) return false;
 
-        var statusCode = (int)ex.StatusCode;
+        int statusCode = (int)ex.StatusCode;
         return statusCode is >= 500 and <= 599 or (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests;
     }
+
 
 
 
@@ -544,6 +543,7 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Starts the download processing. Does nothing if already started.
     /// </summary>
@@ -556,7 +556,8 @@ public class DownloaderModule : IAsyncDisposable
             return;
         }
 
-        _logger.LogInformation("DownloaderModule starting with {WorkerCount} workers. Queue contains {QueueCount} items.", DownloaderOptions.Default.MaxConcurrency, _workQueue.Count);
+        _logger.LogInformation("DownloaderModule starting with {WorkerCount} workers. Queue contains {QueueCount} items.", DownloaderOptions.Default.MaxConcurrency,
+                    _workQueue.Count);
         OnStatusUpdated("Downloader Module is started...");
         IsRunning = true;
         _processingCts = CancellationTokenSource.CreateLinkedTokenSource(_masterCts.Token);
@@ -578,14 +579,15 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Starts the initial set of worker tasks and manages their lifecycle.
     /// </summary>
     private void StartWorkerTasks()
     {
-        for (var i = 0; i < DownloaderOptions.Default.MaxConcurrency; i++)
+        for (int i = 0; i < DownloaderOptions.Default.MaxConcurrency; i++)
         {
-            var workerId = i;
+            int workerId = i;
             var workerTask = Task.Run(async () =>
             {
                 _logger.LogInformation("Worker {WorkerId} started.", workerId);
@@ -643,10 +645,12 @@ public class DownloaderModule : IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Raised when the status of the downloader changes.
     /// </summary>
     public event EventHandler<string>? StatusUpdated;
+
 
 
 
@@ -668,17 +672,11 @@ public class DownloaderModule : IAsyncDisposable
         _logger.LogInformation("StopAsync called. Waiting for all workers to finish. Queue size: {QueueSize}", _workQueue.Count);
         _workQueue.CompleteAdding();
 
-        if (_processingCts != null && !_processingCts.IsCancellationRequested)
-        {
-            _processingCts.Cancel();
-        }
+        if (_processingCts != null && !_processingCts.IsCancellationRequested) _processingCts.Cancel();
 
         try
         {
-            if (_processingTask != null)
-            {
-                await _processingTask.ConfigureAwait(false);
-            }
+            if (_processingTask != null) await _processingTask.ConfigureAwait(false);
 
             _logger.LogInformation("All worker tasks completed.");
         }
@@ -691,12 +689,8 @@ public class DownloaderModule : IAsyncDisposable
             _logger.LogError(ex, "Exception occurred while waiting for worker tasks to complete.");
 
             if (ex is AggregateException aggEx)
-            {
                 foreach (var innerEx in aggEx.Flatten().InnerExceptions)
-                {
                     _logger.LogError(innerEx, "Inner exception from worker task.");
-                }
-            }
         }
 
         _processingCts?.Dispose();
@@ -706,6 +700,7 @@ public class DownloaderModule : IAsyncDisposable
         await SaveQueueToFileAsync().ConfigureAwait(false);
         _logger.LogInformation("Downloader Module stopped.");
     }
+
 
 
 
@@ -725,10 +720,7 @@ public class DownloaderModule : IAsyncDisposable
 
         _logger.LogInformation("Waiting for all active download tasks to complete...");
 
-        if (_processingTask != null)
-        {
-            await _processingTask.ConfigureAwait(false);
-        }
+        if (_processingTask != null) await _processingTask.ConfigureAwait(false);
 
         _logger.LogInformation("All active download tasks have completed.");
     }

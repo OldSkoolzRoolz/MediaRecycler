@@ -164,7 +164,7 @@ partial class DownloaderSettingsForm
         btn_save.UseVisualStyleBackColor = true;
         btn_save.Click += btn_save_Click;
         // 
-        // DownloaderSettings
+        // DownloaderSettingsForm
         // 
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
@@ -184,7 +184,7 @@ partial class DownloaderSettingsForm
         Controls.Add(labelRetryDelay);
         Controls.Add(textBoxRetryDelay);
         MinimizeBox = false;
-        Name = "DownloaderSettings";
+        Name = "DownloaderSettingsForm";
         StartPosition = FormStartPosition.CenterParent;
         Text = "DownloaderSettings";
         TopMost = true;

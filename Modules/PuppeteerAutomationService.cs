@@ -1,9 +1,17 @@
-﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+﻿// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
+
+using MediaRecycler.Modules.Interfaces;
+using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 using PuppeteerSharp;
 
@@ -12,224 +20,45 @@ using PuppeteerSharp;
 namespace MediaRecycler.Modules;
 
 
-/// <summary>
-///     Provides high level abstraction of puppeteer sharp internal functions
-///     Purpose is to provide a clean interface for web automation tasks and to encapsulate
-///     many of the boilerplate code required to interact with PuppeteerSharp. like waiting for selectors.
-/// </summary>
-public interface IWebAutomationService
-{
-
-
-
-    Task ClickElementAsync(string defaultPaginationSelector);
-
-
-
-
-
-
-    /// <summary>
-    ///     Attempts to log in to the current site asynchronously.
-    /// </summary>
-    /// <remarks>
-    ///     This method navigates to the login page, fills in the credentials retrieved from
-    ///     environment variables, and submits the login form. It also includes a delay to
-    ///     ensure the login process completes before proceeding.
-    /// </remarks>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown if required elements (e.g., email or password input fields) are not found on the page.
-    /// </exception>
-    Task DoSiteLoginAsync();
-
-
-
-
-
-
-    Task<string[]> ExtractImageLinksFromPageAsync(string selector);
-    Task<string[]> ExtractSourceUrlFromElementAsync(string selector);
-
-
-
-    Task<string> GetElementTextAsync(string selector);
-
-
-
-
-
-
-    /// <summary>
-    ///     Retrieves a collection of nodes from the current page that match the specified CSS selector.
-    /// </summary>
-    /// <param name="selector">
-    ///     The CSS selector used to identify the nodes to retrieve. This should be a valid CSS selector string.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task{TResult}" /> representing the asynchronous operation,
-    ///     with a result containing an array of <see cref="IElementHandle" /> objects representing the matching nodes.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown if the <paramref name="selector" /> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown if the operation fails to retrieve the nodes due to an invalid selector or other page-related issues.
-    /// </exception>
-    /// <exception cref="Exception">
-    ///     Thrown if an unexpected error occurs during the operation.
-    /// </exception>
-    Task<IElementHandle[]> GetNodeCollectionFromPageAsync(string selector);
-
-
-
-
-
-
-    Task<string> GetPageContentsAsync(string url);
-
-
-
-
-
-
-    /// <summary>
-    ///     Asynchronously retrieves the title of the current web page.
-    /// </summary>
-    /// <remarks>
-    ///     This method interacts with the browser to fetch the title of the currently loaded page.
-    ///     It is useful for verifying the page content or ensuring navigation to the correct page.
-    /// </remarks>
-    /// <returns>
-    ///     A <see cref="string" /> representing the title of the current page.
-    /// </returns>
-    /// <exception cref="Exception">
-    ///     Thrown if an error occurs while attempting to retrieve the page title.
-    /// </exception>
-    Task<string> GetPageTitleAsync();
-
-
-
-
-
-
-    /// <summary>
-    ///     Navigates the browser to the specified URL asynchronously.
-    /// </summary>
-    /// <param name="url">
-    ///     The URL to navigate to. This should be a valid and well-formed URL string.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation.
-    /// </returns>
-    Task GoToAsync(string url);
-
-
-
-
-
-
-    /// <summary>
-    ///     Determines whether an element specified by the given CSS selector is visible on the current page.
-    /// </summary>
-    /// <param name="selector">
-    ///     The CSS selector used to identify the element. This should be a valid CSS selector string.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task{TResult}" /> representing the asynchronous operation,
-    ///     with a result of <c>true</c> if the element is visible; otherwise, <c>false</c>.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown if the <paramref name="selector" /> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown if the operation fails to determine the visibility of the element due to an invalid selector
-    ///     or other page-related issues.
-    /// </exception>
-    /// <exception cref="Exception">
-    ///     Thrown if an unexpected error occurs during the operation.
-    /// </exception>
-    Task<bool> IsElementVisibleAsync(string selector);
-
-
-
-
-
-
-    /// <summary>
-    ///     Navigates to the next page in the current web automation context asynchronously.
-    /// </summary>
-    /// <remarks>
-    ///     This method is typically used in scenarios where pagination is involved,
-    ///     and the next page needs to be loaded for further processing or data extraction.
-    ///     The implementation of this method may vary depending on the specific pagination mechanism of the website.
-    /// </remarks>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation.
-    /// </returns>
-    /// <exception cref="Exception">
-    ///     Thrown if an error occurs while attempting to navigate to the next page.
-    /// </exception>
-    Task NavigateToNextPageAsync();
-
-
-
-
-
-
-    Task<IElementHandle?> QuerySelectorAsync(string selector);
-
-
-
-
-
-
-    /// <summary>
-    ///     Waits asynchronously for a specific selector to appear on the page.
-    /// </summary>
-    /// <param name="waitForSelector">
-    ///     The CSS selector to wait for. This should be a valid selector string that identifies the desired element.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation. The task completes when the selector appears on
-    ///     the page.
-    /// </returns>
-    /// <exception cref="Exception">
-    ///     Thrown if an error occurs while waiting for the selector, such as a timeout or invalid selector.
-    /// </exception>
-    Task WaitForSelectorAsync(string waitForSelector);
-
-}
-
-
-// --- 3. Concrete Implementation with Error Handling ---
 
 
 /// <summary>
 ///     Implements the IWebAutomationService using PuppeteerSharp.
-///     It encapsulates all low-level browser interactions and includes
+///     It encapsulates common puppeteersharp methods low-level browser interactions and includes
 ///     error handling and retry logic for individual actions.
 /// </summary>
-public class PuppeteerAutomationService : IWebAutomationService
+public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposable
 {
 
     private readonly IEventAggregator? _aggregator;
 
+    //TODO: Remove this logger and use the one from Program.cs
+    private readonly ILogger _logger = NullLogger.Instance;
+
     private readonly IPage _page;
+    private readonly PuppeteerManager _puppeteerManager;
 
 
 
 
 
 
-    public PuppeteerAutomationService(IPage page, IEventAggregator aggregator)
+
+    public PuppeteerAutomationService( IEventAggregator aggregator)
     {
-        _page = page ?? throw new ArgumentNullException(nameof(page));
         _aggregator = aggregator;
+        _puppeteerManager = new PuppeteerManager(aggregator);
 
+        _puppeteerManager.InitializeAsync(HeadlessBrowserOptions.Default).GetAwaiter();
+        
+        
+        _page = _puppeteerManager.Page ?? throw new InvalidOperationException("Page cannot be null. Ensure PuppeteerManager is initialized correctly.");
     }
+
+
+
+
+
 
 
 
@@ -254,7 +83,7 @@ public class PuppeteerAutomationService : IWebAutomationService
     {
         try
         {
-            _aggregator?.Publish($"Clicking element with selector '{paginationSelector}'...");
+            _aggregator?.Publish(new StatusMessage($"Clicking element with selector '{paginationSelector}'..."));
             Program.Logger.LogDebug($"Clicking element with selector '{paginationSelector}'...");
             await _page.ClickAsync(paginationSelector).ConfigureAwait(false);
             _ = await _page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } }).ConfigureAwait(false);
@@ -263,10 +92,11 @@ public class PuppeteerAutomationService : IWebAutomationService
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish($"Error clicking element '{paginationSelector}': {ex.Message}");
+            _aggregator?.Publish(new StatusMessage($"Error clicking element '{paginationSelector}': {ex.Message}"));
             throw;
         }
     }
+
 
 
 
@@ -283,29 +113,24 @@ public class PuppeteerAutomationService : IWebAutomationService
 
         var element1Handle = await _page.QuerySelectorAsync("input#email").ConfigureAwait(false);
 
-        if (element1Handle == null)
-        {
-            return;
-        }
+        if (element1Handle == null) return;
 
-        var email = Environment.GetEnvironmentVariable("SCRAPER_EMAIL");
+        string? email = Environment.GetEnvironmentVariable("SCRAPER_EMAIL");
         await element1Handle.TypeAsync(email).ConfigureAwait(false);
 
         var element2Handle = await _page.QuerySelectorAsync("input#password").ConfigureAwait(false);
 
-        if (element2Handle == null)
-        {
-            return;
-        }
+        if (element2Handle == null) return;
 
-        var password = Environment.GetEnvironmentVariable("SCRAPER_PASSWORD");
+        string? password = Environment.GetEnvironmentVariable("SCRAPER_PASSWORD");
         await element2Handle.TypeAsync(password).ConfigureAwait(false);
 
         await _page.ClickAsync("button[type=submit]").ConfigureAwait(false);
         await Task.Delay(5000).ConfigureAwait(false);
-        _aggregator?.Publish("Login to site was successful");
+        _aggregator?.Publish(new StatusMessage("Login to site was successful"));
 
     }
+
 
 
 
@@ -322,10 +147,12 @@ public class PuppeteerAutomationService : IWebAutomationService
 
 
 
+
     public Task<string[]> ExtractSourceUrlFromElementAsync(string selector)
     {
         throw new NotImplementedException();
     }
+
 
 
 
@@ -341,7 +168,7 @@ public class PuppeteerAutomationService : IWebAutomationService
 
             if (element == null)
             {
-                _aggregator?.Publish($"Element with selector '{selector}' not found.");
+                _aggregator?.Publish(new StatusMessage($"Element with selector '{selector}' not found."));
                 return null!;
             }
 
@@ -349,15 +176,16 @@ public class PuppeteerAutomationService : IWebAutomationService
         }
         catch (WaitTaskTimeoutException)
         {
-            _aggregator?.Publish($"Timeout waiting for selector '{selector}'.");
+            _aggregator?.Publish(new StatusMessage($"Timeout waiting for selector '{selector}'."));
             return null!;
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish($"Error getting text from selector '{selector}': {ex.Message}");
+            _aggregator?.Publish(new StatusMessage($"Error getting text from selector '{selector}': {ex.Message}"));
             throw;
         }
     }
+
 
 
 
@@ -373,7 +201,7 @@ public class PuppeteerAutomationService : IWebAutomationService
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish($"Error getting node collection for selector '{selector}': {ex.Message}");
+            _aggregator?.Publish(new StatusMessage($"Error getting node collection for selector '{selector}': {ex.Message}"));
             return [];
         }
     }
@@ -383,12 +211,10 @@ public class PuppeteerAutomationService : IWebAutomationService
 
 
 
+
     public async Task<string> GetPageContentsAsync(string url)
     {
-        if (string.IsNullOrWhiteSpace(url))
-        {
-            throw new ArgumentNullException(url, "url cannot be null");
-        }
+        if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(url, "url cannot be null");
 
         try
         {
@@ -412,6 +238,7 @@ public class PuppeteerAutomationService : IWebAutomationService
 
 
 
+
     /// <summary>
     ///     Asynchronously retrieves the title of the current page.
     /// </summary>
@@ -424,10 +251,11 @@ public class PuppeteerAutomationService : IWebAutomationService
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish($"Error getting page title: {ex.Message}");
+            _aggregator?.Publish(new StatusMessage($"Error getting page title: {ex.Message}"));
             throw;
         }
     }
+
 
 
 
@@ -438,28 +266,28 @@ public class PuppeteerAutomationService : IWebAutomationService
     {
         try
         {
-            _aggregator?.Publish($"Navigating to {url}...");
+            _aggregator?.Publish(new StatusMessage($"Navigating to {url}..."));
             Program.Logger.LogInformation($"Navigating to page {url}...");
 
             var response = await _page.GoToAsync(url, WaitUntilNavigation.DOMContentLoaded).ConfigureAwait(false);
 
             if (response.Ok)
             {
-                _aggregator?.Publish("Navigation successful.");
+                _aggregator?.Publish(new StatusMessage("Navigation successful."));
                 return;
             }
 
-            _aggregator?.Publish($"Navigation failed with status: {response.Status}");
+            _aggregator?.Publish(new StatusMessage($"Navigation failed with status: {response.Status}"));
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish($"Error navigating to {url}: {ex.Message}");
+            _aggregator?.Publish(new StatusMessage($"Error navigating to {url}: {ex.Message}"));
 
         }
 
-        await Task.Delay(RetryDelayMilliseconds).ConfigureAwait(false);
 
     }
+
 
 
 
@@ -487,20 +315,18 @@ public class PuppeteerAutomationService : IWebAutomationService
         {
             var element = await _page.QuerySelectorAsync(selector).ConfigureAwait(false);
 
-            if (element == null)
-            {
-                return false;
-            }
+            if (element == null) return false;
 
             var boundingBox = await element.BoundingBoxAsync();
             return boundingBox != null && boundingBox.Width > 0 && boundingBox.Height > 0;
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish($"Error checking visibility of element '{selector}': {ex.Message}");
+            _aggregator?.Publish(new StatusMessage($"Error checking visibility of element '{selector}': {ex.Message}"));
             return false;
         }
     }
+
 
 
 
@@ -517,23 +343,43 @@ public class PuppeteerAutomationService : IWebAutomationService
 
 
 
+
+    /// <summary>
+    ///     Retrieves the first element that matches the specified CSS selector from the current page.
+    /// </summary>
+    /// <param name="selector">
+    ///     A CSS selector string used to identify the desired element on the page.
+    /// </param>
+    /// <returns>
+    ///     An <see cref="IElementHandle" /> representing the first matching element, or <c>null</c> if no matching element is
+    ///     found.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    ///     Thrown when the <paramref name="selector" /> is <c>null</c>, empty, or consists only of whitespace.
+    /// </exception>
+    /// <remarks>
+    ///     This method uses PuppeteerSharp's <c>QuerySelectorAsync</c> to locate the element.
+    ///     If an error occurs during the operation, it logs the error and returns <c>null</c>.
+    /// </remarks>
     public async Task<IElementHandle?> QuerySelectorAsync(string selector)
     {
         if (string.IsNullOrWhiteSpace(selector))
         {
-            throw new ArgumentException("Selector cannot be null or empty.", nameof(selector));
+            _logger.LogError("Selector cannot be null or empty. {selector}", nameof(selector));
+            return null;
         }
 
         try
         {
-            return await _page.QuerySelectorAsync(selector).ConfigureAwait(false) ?? throw new InvalidOperationException($"No element found for selector: {selector}");
+            return await _page.QuerySelectorAsync(selector).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new { Message = $"Error in QuerySelectorAsync: {ex.Message}", Exception = ex });
-            throw;
+            _aggregator?.Publish(new StatusMessage($"Error in QuerySelectorAsync: {ex.Message}"));
+            return null;
         }
     }
+
 
 
 
@@ -554,17 +400,25 @@ public class PuppeteerAutomationService : IWebAutomationService
 
 
 
-    private const int MaxRetries = 3;
-    private const int RetryDelayMilliseconds = 1000;
-
-
-
-
-
 
     public Task<string[]> ExtractVideoLinksFromPageAsync(string selector)
     {
         throw new NotImplementedException();
+    }
+
+
+
+
+
+
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or
+    /// resetting unmanaged resources asynchronously.</summary>
+    /// <returns>A task that represents the asynchronous dispose operation.</returns>
+    public async ValueTask DisposeAsync()
+    {
+        await _page.DisposeAsync();
     }
 
 }

@@ -1,10 +1,15 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
 
 using KC.Crawler;
 
+using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
@@ -22,13 +27,14 @@ namespace MediaRecycler.Modules;
 ///     Manages PuppeteerSharp browser/page lifecycle, URL queueing (frontier), and download coordination.
 ///     Designed for dependency injection and asynchronous workflows.
 /// </summary>
-public class Scrapers : PuppetPageBase, IAsyncDisposable
+public class Scrapers : PuppetPageBase
 {
 
 
     private readonly ILogger _scraperLogger;
     private bool _disposed;
     private string _startUrl;
+
 
 
 
@@ -53,8 +59,10 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
 
+
     internal MiniFrontier Frontier { get; private set; }
     private static readonly IWebAutomationService _automationService;
+
 
 
 
@@ -71,27 +79,22 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
         var element1Handle = await page.QuerySelectorAsync("input#email");
 
-        if (element1Handle == null)
-        {
-            return;
-        }
+        if (element1Handle == null) return;
 
-        var email = Environment.GetEnvironmentVariable("SCRAPER_EMAIL");
+        string? email = Environment.GetEnvironmentVariable("SCRAPER_EMAIL");
         await element1Handle.TypeAsync(email);
 
         var element2Handle = await page.QuerySelectorAsync("input#password");
 
-        if (element2Handle == null)
-        {
-            return;
-        }
+        if (element2Handle == null) return;
 
-        var password = Environment.GetEnvironmentVariable("SCRAPER_PASSWORD");
+        string? password = Environment.GetEnvironmentVariable("SCRAPER_PASSWORD");
         await element2Handle.TypeAsync(password);
 
         await page.ClickAsync("button[type=submit]");
         await Task.Delay(5000);
     }
+
 
 
 
@@ -107,17 +110,11 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
         if (e.EventType == FrontierStatusEventType.EvictionEnd && e.Details != null)
         {
-            if (e.Details.TryGetValue("ActuallyRemoved", out var removedCount))
-            {
-                Console.WriteLine($"  Eviction removed {removedCount} items.");
-            }
+            if (e.Details.TryGetValue("ActuallyRemoved", out object? removedCount)) Console.WriteLine($"  Eviction removed {removedCount} items.");
         }
         else if (e.EventType == FrontierStatusEventType.Warning && e.Details != null)
         {
-            if (e.Details.TryGetValue("Host", out var host))
-            {
-                Console.WriteLine($"  Warning related to host: {host}");
-            }
+            if (e.Details.TryGetValue("Host", out object? host)) Console.WriteLine($"  Warning related to host: {host}");
         }
     }
 
@@ -126,12 +123,10 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
 
+
     internal async ValueTask DisposeAsync()
     {
-        if (_disposed)
-        {
-            return;
-        }
+        if (_disposed) return;
 
         try
         {
@@ -159,6 +154,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Wraps the login logic in a task, handling exceptions and logging errors.
     /// </summary>
@@ -180,18 +176,16 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
 
+
     /// <summary>
     ///     Gathers followed blog URLs from paginated pages and enqueues them in the frontier.
     /// </summary>
     public async Task GatherFollowedBlogsAsync()
     {
-        var nextPage = true;
+        bool nextPage = true;
         _scraperLogger.LogInformation("Navigating to initial URL: {StartUrl}", _startUrl);
 
-        if (Page == null)
-        {
-            throw new InvalidOperationException("Page is not initialized before gathering blogs.");
-        }
+        if (Page == null) throw new InvalidOperationException("Page is not initialized before gathering blogs.");
 
         Page.DefaultNavigationTimeout = 60000;
         Page.DefaultTimeout = 60000;
@@ -204,7 +198,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         _ = await Page.WaitForSelectorAsync("div.namefollowerholder a").WithTimeout(TimeSpan.FromSeconds(ScrapingOptions.Default.DefaultPuppeteerTimeout));
         await Task.Delay(500);
 
-        var pageNum = 1;
+        int pageNum = 1;
 
         while (nextPage)
         {
@@ -215,7 +209,6 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
             _scraperLogger.LogDebug("Found {NodeCount} potential blog entries on page {PageNum}.", nodes?.Length ?? 0, pageNum);
 
             if (nodes != null)
-            {
                 foreach (var nodeHandle in nodes)
                 {
                     IElementHandle? linkHandle = null;
@@ -228,33 +221,22 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
                         if (linkHandle != null)
                         {
                             hrefHandle = await linkHandle.GetPropertyAsync("href");
-                            var blogUrl = await hrefHandle.JsonValueAsync<string>();
+                            string? blogUrl = await hrefHandle.JsonValueAsync<string>();
 
                             if (Uri.TryCreate(blogUrl, UriKind.Absolute, out var uriResult))
-                            {
                                 if (Frontier.Enqueue(uriResult))
-                                {
                                     _scraperLogger.LogTrace("Queued: {BlogUrl}", blogUrl);
-                                }
-                            }
                         }
                     }
                     finally
                     {
-                        if (hrefHandle != null)
-                        {
-                            await hrefHandle.DisposeAsync();
-                        }
+                        if (hrefHandle != null) await hrefHandle.DisposeAsync();
 
-                        if (linkHandle != null)
-                        {
-                            await linkHandle.DisposeAsync();
-                        }
+                        if (linkHandle != null) await linkHandle.DisposeAsync();
 
                         await nodeHandle.DisposeAsync();
                     }
                 }
-            }
 
             IElementHandle? nextAnchorHandle = null;
             IJSHandle? nextHrefHandle = null;
@@ -266,7 +248,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
                 if (nextAnchorHandle != null)
                 {
                     nextHrefHandle = await nextAnchorHandle.GetPropertyAsync("href");
-                    var nextPageUrl = await nextHrefHandle.JsonValueAsync<string>();
+                    string? nextPageUrl = await nextHrefHandle.JsonValueAsync<string>();
 
                     if (!string.IsNullOrWhiteSpace(nextPageUrl) && nextPageUrl != _startUrl)
                     {
@@ -289,20 +271,15 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
             }
             finally
             {
-                if (nextHrefHandle != null)
-                {
-                    await nextHrefHandle.DisposeAsync();
-                }
+                if (nextHrefHandle != null) await nextHrefHandle.DisposeAsync();
 
-                if (nextAnchorHandle != null)
-                {
-                    await nextAnchorHandle.DisposeAsync();
-                }
+                if (nextAnchorHandle != null) await nextAnchorHandle.DisposeAsync();
             }
         }
 
         _scraperLogger.LogDebug("Exited pagination loop.");
     }
+
 
 
 
@@ -321,12 +298,9 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         {
             _ = await Page.GoToAsync(_startUrl, WaitUntilNavigation.Networkidle2);
 
-            if (Page.Url.Contains("login"))
-            {
-                await DoLoginWrappedAsync(Page);
-            }
+            if (Page.Url.Contains("login")) await DoLoginWrappedAsync(Page);
 
-            var source = await Page.GetContentAsync();
+            string? source = await Page.GetContentAsync();
 
             await File.WriteAllTextAsync(Directory.GetCurrentDirectory(), source);
 
@@ -342,7 +316,9 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
 
+
     public event EventHandler<string>? MainLogUpdated;
+
 
 
 
@@ -359,10 +335,12 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
 
 
 
+
     private void OnStatusBarUpdated(string message)
     {
         StatusBarUpdated?.Invoke(this, message);
     }
+
 
 
 
@@ -390,7 +368,8 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
             //Go to the first page of the archive for the single blog
             // This URL should be the blog's archive page, e.g., "https://example.bdsmlr.com/archive?page=1"
             // Ensure the URL ends with the archive page suffix and hard codes the page number to 1 to fix server-side loading issues
-            var response = await Page.GoToAsync(singleBlogHomeUrl + ScrapingOptions.Default.ArchivePageUrlSuffix + "?page=1", new NavigationOptions { WaitUntil = [WaitUntilNavigation.Networkidle2] });
+            var response = await Page.GoToAsync(singleBlogHomeUrl + ScrapingOptions.Default.ArchivePageUrlSuffix + "?page=1",
+                        new NavigationOptions { WaitUntil = [WaitUntilNavigation.Networkidle2] });
 
             OnMainFormTextUpdated(response.StatusText);
 
@@ -411,6 +390,7 @@ public class Scrapers : PuppetPageBase, IAsyncDisposable
         }
 
     }
+
 
 
 

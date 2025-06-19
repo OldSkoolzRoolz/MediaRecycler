@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: MediaRecycler
+// Author:  Kyle Crowder
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License
+// Do not remove file headers
 
 
 
@@ -10,14 +14,20 @@ using System.Collections.Concurrent;
 namespace MediaRecycler.Modules;
 
 
+public interface IMessage
+{
+
+}
+
+
 public interface IEventAggregator
 {
 
-    void Subscribe<T>(Action<T> handler);
+    void Publish<T>(T message) where T : IMessage;
 
-    void Unsubscribe<T>(Action<T> handler);
+    void Subscribe<T>(Action<T> handler) where T : IMessage;
 
-    void Publish<T>(T message);
+    void Unsubscribe<T>(Action<T> handler) where T : IMessage;
 
 }
 
@@ -42,6 +52,41 @@ public class EventAggregator : IEventAggregator
 
 
 
+
+    /// <summary>
+    ///     Publishes a message of the specified type to all subscribed handlers.
+    ///     This method allows components to broadcast events or data to other components
+    ///     that have subscribed to the specified type of message.
+    /// </summary>
+    /// <typeparam name="T">
+    ///     The type of the message being published. This type is used to match
+    ///     the message with the appropriate subscribers.
+    /// </typeparam>
+    /// <param name="message">
+    ///     The message instance to be published. This message is passed to all
+    ///     subscribed handlers of the specified type.
+    /// </param>
+    public void Publish<T>(T message) where T : IMessage
+    {
+        if (_subscribers.TryGetValue(typeof(T), out var handlers))
+        {
+            List<Delegate> snapshot;
+
+            lock (handlers)
+            {
+                snapshot = [.. handlers];
+            }
+
+            foreach (var handler in snapshot) ((Action<T>)handler)?.Invoke(message);
+        }
+    }
+
+
+
+
+
+
+
     /// <summary>
     ///     Subscribes to events of the specified type.
     /// </summary>
@@ -59,7 +104,7 @@ public class EventAggregator : IEventAggregator
     /// <exception cref="ArgumentNullException">
     ///     Thrown if the <paramref name="handler" /> is <c>null</c>.
     /// </exception>
-    public void Subscribe<T>(Action<T> handler)
+    public void Subscribe<T>(Action<T> handler) where T : IMessage
     {
         var handlers = _subscribers.GetOrAdd(typeof(T), _ => []);
 
@@ -68,6 +113,7 @@ public class EventAggregator : IEventAggregator
             handlers.Add(handler);
         }
     }
+
 
 
 
@@ -90,58 +136,20 @@ public class EventAggregator : IEventAggregator
     /// <exception cref="ArgumentNullException">
     ///     Thrown if the <paramref name="handler" /> is <c>null</c>.
     /// </exception>
-    public void Unsubscribe<T>(Action<T> handler)
+    public void Unsubscribe<T>(Action<T> handler) where T : IMessage
     {
         if (_subscribers.TryGetValue(typeof(T), out var handlers))
-        {
             lock (handlers)
             {
                 _ = handlers.Remove(handler);
             }
-        }
-    }
-
-
-
-
-
-
-    /// <summary>
-    ///     Publishes a message of the specified type to all subscribed handlers.
-    ///     This method allows components to broadcast events or data to other components
-    ///     that have subscribed to the specified type of message.
-    /// </summary>
-    /// <typeparam name="T">
-    ///     The type of the message being published. This type is used to match
-    ///     the message with the appropriate subscribers.
-    /// </typeparam>
-    /// <param name="message">
-    ///     The message instance to be published. This message is passed to all
-    ///     subscribed handlers of the specified type.
-    /// </param>
-    public void Publish<T>(T message)
-    {
-        if (_subscribers.TryGetValue(typeof(T), out var handlers))
-        {
-            List<Delegate> snapshot;
-
-            lock (handlers)
-            {
-                snapshot = [.. handlers];
-            }
-
-            foreach (var handler in snapshot)
-            {
-                ((Action<T>)handler)?.Invoke(message);
-            }
-        }
     }
 
 }
 
 
 public class StatusMessage(
-            string text)
+            string text) : IMessage
 {
 
     public string Text { get; } = text;
@@ -150,9 +158,27 @@ public class StatusMessage(
 
 
 public class PageNumberMessage(
-            int pageNumber)
+            int pageNumber) : IMessage
 {
 
     public int PageNumber { get; } = pageNumber;
+
+}
+
+
+public class QueueCountMessage(
+            int queueCount) : IMessage
+{
+
+    public int QueueCount { get; } = queueCount;
+
+}
+
+
+public class PuppeteerRecoveryEvent(
+            string message) : IMessage
+{
+
+    public string message { get; } = message;
 
 }

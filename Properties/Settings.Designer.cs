@@ -24,6 +24,8 @@ namespace MediaRecycler.Properties {
         }
 
         public string LastUsedWSEndpoint { get; set; }
+        public string MyDocumentsPath { get; set; }
+        public string PuppeteerExecutablePath { get; set; }
 
     }
 }

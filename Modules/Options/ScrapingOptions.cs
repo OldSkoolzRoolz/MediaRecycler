@@ -134,6 +134,10 @@ public class ScrapingOptions : ApplicationSettingsBase
         set => this[nameof(SinglePostPageUrl)] = value ?? string.Empty;
     }
 
+    [UserScopedSetting]
+    [DefaultSettingValue("false")]
+    public bool SinglePageScan { get; set; }
+
     /// <summary>
     ///     Gets the default instance of the <see cref="ScrapingOptions" /> class.
     ///     This property provides a thread-safe, synchronized instance of <see cref="ScrapingOptions" />
