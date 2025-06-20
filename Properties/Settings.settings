@@ -1,5 +1,9 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
-<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)">
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="MediaRecycler.Properties" GeneratedClassName="Settings">
   <Profiles />
-  <Settings />
+  <Settings>
+    <Setting Name="PuppeteerExecutablePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">c:\users\kcrow\documents\Chrome\\Win64-132.0.6834.83\\chrome-win64\\chrome.exe</Value>
+    </Setting>
+  </Settings>
 </SettingsFile>

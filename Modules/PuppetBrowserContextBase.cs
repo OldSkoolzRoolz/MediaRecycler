@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -18,18 +22,17 @@ namespace MediaRecycler.Modules;
 public class PuppetBrowserContextBase : PuppetBrowserBase
 {
 
-    private readonly ILogger _logger;
 
 
 
 
 
 
-    public PuppetBrowserContextBase(ILogger logger) : base(logger)
+    public PuppetBrowserContextBase() : base()
     {
 
-        _logger = logger;
-        
+
+
     }
 
 
@@ -47,7 +50,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
 
     // Fix for CS8774: Ensure 'Context' is assigned a non-null value before exiting the method.
     [MemberNotNull(nameof(Context))]
-    protected Task CreateContextAsync()
+    protected Task CreateContextTaskAsync()
     {
         Context = Browser != null ? Browser.DefaultContext ?? throw new InvalidOperationException("Browser.DefaultContext is null.") : throw new InvalidOperationException("Browser is null.");
 
@@ -61,7 +64,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
 
     protected virtual async Task DisposeAsyncCore()
     {
-        _logger.LogDebug("Disposing Context asynchronously...");
+        Program.Logger.LogDebug("Disposing Context asynchronously...");
 
         if (Context is { IsClosed: false })
         {
@@ -71,7 +74,7 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error disposing the Puppeteer context.");
+                Program.Logger.LogError(ex, "Error disposing the Puppeteer context.");
 
                 // Swallow or handle exception during disposal as needed
             }
@@ -81,10 +84,10 @@ public class PuppetBrowserContextBase : PuppetBrowserBase
             }
         }
 
-        _logger.LogDebug("Calling base DisposeAsyncCore...");
+        Program.Logger.LogDebug("Calling base DisposeAsyncCore...");
         await DisposeAsync();
 
-        _logger.LogDebug("Context asynchronous disposal complete.");
+        Program.Logger.LogDebug("Context asynchronous disposal complete.");
 
     }
 

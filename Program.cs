@@ -1,11 +1,13 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
 
+
+using System.Diagnostics;
 
 using MediaRecycler.Modules;
 
@@ -35,6 +37,9 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
+        KillPreviousWebBrowserProcesses();
+
+
         Application.SetCompatibleTextRenderingDefault(false);
         Application.EnableVisualStyles();
         _ = Application.SetHighDpiMode(HighDpiMode.SystemAware);
@@ -90,4 +95,80 @@ internal static class Program
         }
     }
 
+
+
+
+    private static void KillPreviousWebBrowserProcesses()
+    {
+        var matchingProcesses =
+                    System.Diagnostics.Process.GetProcesses()
+                                /*
+                                2020-02-17
+                                .Where(process => process.StartInfo.Arguments.Contains(UserDataDirPath(), StringComparison.InvariantCultureIgnoreCase))
+                                */
+                                .Where(ProcessIsWebBrowser)
+                                .ToList();
+
+        foreach (var process in matchingProcesses)
+        {
+            if (process.HasExited)
+            {
+                continue;
+            }
+
+            process.Kill();
+        }
+    }
+
+    private static bool ProcessIsWebBrowser(System.Diagnostics.Process process)
+    {
+        try
+        {
+            return process.MainModule.FileName.Contains(".local-chromium");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+
+
+    //Terminate all running processes with the name of chrome.exe and iexplorer.exe
+    private static void TerminateBrowserProcesses()
+    {
+        try
+        {
+            string[] processesToTerminate = new[] { "chrome", "msedge", "webview2" };
+
+            foreach (string? processName in processesToTerminate)
+            {
+                var processes = Process.GetProcessesByName(processName);
+
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        process.Kill();
+                        Logger?.LogInformation($"Terminated process: {process.ProcessName} (ID: {process.Id})");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger?.LogWarning($"Failed to terminate process: {process.ProcessName} (ID: {process.Id}). Error: {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger?.LogError($"An error occurred while terminating browser processes: {ex.Message}");
+        }
+    }
+
+
 }
+
+//TODO: Create helper to centralize logging for all types implemented in the application
+
+//TODO: Streamline error handling and logging across the application, ensuring consistent error messages and logging levels.
+

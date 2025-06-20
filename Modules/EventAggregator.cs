@@ -1,7 +1,7 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -77,7 +77,10 @@ public class EventAggregator : IEventAggregator
                 snapshot = [.. handlers];
             }
 
-            foreach (var handler in snapshot) ((Action<T>)handler)?.Invoke(message);
+            foreach (var handler in snapshot)
+            {
+                ((Action<T>)handler)?.Invoke(message);
+            }
         }
     }
 
@@ -139,10 +142,12 @@ public class EventAggregator : IEventAggregator
     public void Unsubscribe<T>(Action<T> handler) where T : IMessage
     {
         if (_subscribers.TryGetValue(typeof(T), out var handlers))
+        {
             lock (handlers)
             {
                 _ = handlers.Remove(handler);
             }
+        }
     }
 
 }
@@ -181,4 +186,10 @@ public class PuppeteerRecoveryEvent(
 
     public string message { get; } = message;
 
+}
+
+public class StatusBarMessage(
+            string text) : IMessage
+{
+    public string Text { get; } = text;
 }

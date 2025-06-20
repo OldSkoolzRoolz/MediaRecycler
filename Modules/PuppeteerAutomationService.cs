@@ -1,19 +1,16 @@
-﻿// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
 
 
-using MediaRecycler.Modules.Interfaces;
-using MediaRecycler.Modules.Options;
-
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 using PuppeteerSharp;
+using PuppeteerSharp.Helpers;
 
 
 
@@ -32,11 +29,8 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
 
     private readonly IEventAggregator? _aggregator;
 
-    //TODO: Remove this logger and use the one from Program.cs
-    private readonly ILogger _logger = NullLogger.Instance;
-
-    private readonly IPage _page;
     private readonly PuppeteerManager _puppeteerManager;
+    private readonly int DefaultTimeout = 90000; // Default timeout for operations in milliseconds
 
 
 
@@ -44,20 +38,29 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
 
 
 
-    public PuppeteerAutomationService( IEventAggregator aggregator)
+    public PuppeteerAutomationService(IEventAggregator aggregator)
     {
         _aggregator = aggregator;
         _puppeteerManager = new PuppeteerManager(aggregator);
 
-        _puppeteerManager.InitializeAsync(HeadlessBrowserOptions.Default).GetAwaiter();
-        
-        
-        _page = _puppeteerManager.Page ?? throw new InvalidOperationException("Page cannot be null. Ensure PuppeteerManager is initialized correctly.");
     }
 
 
 
 
+
+
+
+    public async Task InitializeAsync()
+    {
+        await _puppeteerManager.InitAsync();
+
+        if (_puppeteerManager.Page is null)
+        {
+            Program.Logger.LogError("Failed to initialize Puppeteer page.");
+            throw new InvalidOperationException("Page initialization failed.");
+        }
+    }
 
 
 
@@ -85,8 +88,9 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
         {
             _aggregator?.Publish(new StatusMessage($"Clicking element with selector '{paginationSelector}'..."));
             Program.Logger.LogDebug($"Clicking element with selector '{paginationSelector}'...");
-            await _page.ClickAsync(paginationSelector).ConfigureAwait(false);
-            _ = await _page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } }).ConfigureAwait(false);
+            await _puppeteerManager.Page.ClickAsync(paginationSelector).ConfigureAwait(false);
+            _ = await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } })
+                        .WithTimeout(DefaultTimeout).ConfigureAwait(false);
 
 
         }
@@ -108,26 +112,40 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     /// </summary>
     public async Task DoSiteLoginAsync()
     {
-        _ = await _page.GoToAsync("https://www.bdsmlr.com/login").ConfigureAwait(false);
+        _ = await _puppeteerManager.Page.GoToAsync("https://www.bdsmlr.com/login").ConfigureAwait(false);
         await Task.Delay(5000);
 
-        var element1Handle = await _page.QuerySelectorAsync("input#email").ConfigureAwait(false);
+        try
+        {
+            var element1Handle = await _puppeteerManager.Page.QuerySelectorAsync("input#email").ConfigureAwait(false);
 
-        if (element1Handle == null) return;
+            if (element1Handle == null)
+            {
+                return;
+            }
 
-        string? email = Environment.GetEnvironmentVariable("SCRAPER_EMAIL");
-        await element1Handle.TypeAsync(email).ConfigureAwait(false);
+            string? email = Environment.GetEnvironmentVariable("SCRAPER_EMAIL");
+            await element1Handle.TypeAsync(email).ConfigureAwait(false);
 
-        var element2Handle = await _page.QuerySelectorAsync("input#password").ConfigureAwait(false);
+            var element2Handle = await _puppeteerManager.Page.QuerySelectorAsync("input#password").ConfigureAwait(false);
 
-        if (element2Handle == null) return;
+            if (element2Handle == null)
+            {
+                return;
+            }
 
-        string? password = Environment.GetEnvironmentVariable("SCRAPER_PASSWORD");
-        await element2Handle.TypeAsync(password).ConfigureAwait(false);
+            string? password = Environment.GetEnvironmentVariable("SCRAPER_PASSWORD");
+            await element2Handle.TypeAsync(password).ConfigureAwait(false);
 
-        await _page.ClickAsync("button[type=submit]").ConfigureAwait(false);
-        await Task.Delay(5000).ConfigureAwait(false);
-        _aggregator?.Publish(new StatusMessage("Login to site was successful"));
+            await _puppeteerManager.Page.ClickAsync("button[type=submit]").ConfigureAwait(false);
+            await Task.Delay(5000).ConfigureAwait(false);
+            _aggregator?.Publish(new StatusMessage("Login to site was successful"));
+        }
+        catch (Exception e)
+        {
+
+            Program.Logger.LogError(e, "Error during site login process");
+        }
 
     }
 
@@ -159,17 +177,17 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
 
 
 
-    public async Task<string> GetElementTextAsync(string selector)
+    public async Task<string?> GetElementTextAsync(string selector)
     {
         try
         {
-            _ = await _page.WaitForSelectorAsync(selector, new WaitForSelectorOptions { Timeout = 5000 }).ConfigureAwait(false);
-            var element = await _page.QuerySelectorAsync(selector).ConfigureAwait(false);
+            _ = await _puppeteerManager.Page.WaitForSelectorAsync(selector, new WaitForSelectorOptions { Timeout = 15000 }).ConfigureAwait(false);
+            var element = await _puppeteerManager.Page.QuerySelectorAsync(selector).WithTimeout(DefaultTimeout).ConfigureAwait(false);
 
             if (element == null)
             {
                 _aggregator?.Publish(new StatusMessage($"Element with selector '{selector}' not found."));
-                return null!;
+                return null;
             }
 
             return await element.GetPropertyAsync("textContent").Result.JsonValueAsync<string>();
@@ -177,12 +195,16 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
         catch (WaitTaskTimeoutException)
         {
             _aggregator?.Publish(new StatusMessage($"Timeout waiting for selector '{selector}'."));
-            return null!;
+            return null;
         }
         catch (Exception ex)
         {
             _aggregator?.Publish(new StatusMessage($"Error getting text from selector '{selector}': {ex.Message}"));
-            throw;
+            return null;
+        }
+        finally
+        {
+            await _puppeteerManager.DisposeAsync();
         }
     }
 
@@ -196,7 +218,7 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     {
         try
         {
-            var elements = await _page.QuerySelectorAllAsync(selector).ConfigureAwait(false);
+            var elements = await _puppeteerManager.Page.QuerySelectorAllAsync(selector).WithTimeout(DefaultTimeout).ConfigureAwait(false);
             return elements;
         }
         catch (Exception ex)
@@ -211,19 +233,34 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
 
 
 
+    /// <summary>
+    /// Gets the contents of the current page the PuppeteerManager is attached to.
+    /// Method does not navigate to a new page, it simply retrieves the HTML content of the current page.
+    /// </summary>
+    /// <returns>String containing the HTML of the current page</returns>
+    public async Task<string> GetPageContentsAsync()
+    {
+        return await _puppeteerManager.Page.GetContentAsync().ConfigureAwait(false);
+    }
+
+
+
 
     public async Task<string> GetPageContentsAsync(string url)
     {
-        if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(url, "url cannot be null");
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new ArgumentNullException(url, "url cannot be null");
+        }
 
         try
         {
 
-            _ = await _page.GoToAsync(url, new NavigationOptions
+            _ = await _puppeteerManager.Page.GoToAsync(url, new NavigationOptions
             {
-                        WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded }, Timeout = 20000 // 20 seconds
+                WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded }, Timeout = 20000 // 20 seconds
             }).ConfigureAwait(false);
-            return await _page.GetContentAsync().ConfigureAwait(false);
+            return await _puppeteerManager.Page.GetContentAsync().ConfigureAwait(false);
 
         }
         catch (Exception e)
@@ -247,7 +284,7 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     {
         try
         {
-            return await _page.GetTitleAsync().ConfigureAwait(false);
+            return await _puppeteerManager.Page.GetTitleAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -269,7 +306,7 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
             _aggregator?.Publish(new StatusMessage($"Navigating to {url}..."));
             Program.Logger.LogInformation($"Navigating to page {url}...");
 
-            var response = await _page.GoToAsync(url, WaitUntilNavigation.DOMContentLoaded).ConfigureAwait(false);
+            var response = await _puppeteerManager.Page.GoToAsync(url, WaitUntilNavigation.DOMContentLoaded).WithTimeout(DefaultTimeout).ConfigureAwait(false);
 
             if (response.Ok)
             {
@@ -313,9 +350,12 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     {
         try
         {
-            var element = await _page.QuerySelectorAsync(selector).ConfigureAwait(false);
+            var element = await _puppeteerManager.Page.QuerySelectorAsync(selector).WithTimeout(DefaultTimeout).ConfigureAwait(false);
 
-            if (element == null) return false;
+            if (element == null)
+            {
+                return false;
+            }
 
             var boundingBox = await element.BoundingBoxAsync();
             return boundingBox != null && boundingBox.Width > 0 && boundingBox.Height > 0;
@@ -365,13 +405,13 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     {
         if (string.IsNullOrWhiteSpace(selector))
         {
-            _logger.LogError("Selector cannot be null or empty. {selector}", nameof(selector));
+            Program.Logger.LogError("Selector cannot be null or empty. {selector}", nameof(selector));
             return null;
         }
 
         try
         {
-            return await _page.QuerySelectorAsync(selector).ConfigureAwait(false);
+            return await _puppeteerManager.Page.QuerySelectorAsync(selector).WithTimeout(DefaultTimeout).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -393,18 +433,9 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public Task WaitForSelectorAsync(string waitForSelector) =>
-                _page.WaitForSelectorAsync(waitForSelector, new WaitForSelectorOptions { Timeout = 30000 });
+                _puppeteerManager.Page.WaitForSelectorAsync(waitForSelector, new WaitForSelectorOptions { Timeout = 60000 });
 
 
-
-
-
-
-
-    public Task<string[]> ExtractVideoLinksFromPageAsync(string selector)
-    {
-        throw new NotImplementedException();
-    }
 
 
 
@@ -418,7 +449,10 @@ public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposabl
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        await _page.DisposeAsync();
+        if (_puppeteerManager?.Page != null)
+        {
+            await _puppeteerManager.Page.DisposeAsync();
+        }
     }
 
 }

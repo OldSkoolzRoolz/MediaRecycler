@@ -22,10 +22,21 @@ namespace MediaRecycler.Properties {
                 return defaultInstance;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("c:\\users\\kcrow\\documents\\Chrome\\\\Win64-132.0.6834.83\\\\chrome-win64\\\\chrome.exe")]
+        public string PuppeteerExecutablePath {
+            get {
+                return ((string)(this["PuppeteerExecutablePath"]));
+            }
+            set {
+                this["PuppeteerExecutablePath"] = value;
+            }
+        }
 
-        public string LastUsedWSEndpoint { get; set; }
+        public string? LastUsedWSEndpoint { get; set; }
         public string MyDocumentsPath { get; set; }
-        public string PuppeteerExecutablePath { get; set; }
 
     }
 }

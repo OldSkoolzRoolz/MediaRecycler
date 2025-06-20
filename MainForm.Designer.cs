@@ -40,7 +40,7 @@
             tsl_status = new ToolStripStatusLabel();
             notifyIcon1 = new NotifyIcon(components);
             btn_GetVidPages = new Button();
-            btn_scrape = new Button();
+            btn_QueVideos = new Button();
             btn_download = new Button();
             menuStrip1 = new MenuStrip();
             settingsToolStripMenuItem = new ToolStripMenuItem();
@@ -105,6 +105,7 @@
             // 
             // btn_GetVidPages
             // 
+            btn_GetVidPages.FlatStyle = FlatStyle.System;
             btn_GetVidPages.Font = new Font("Segoe UI", 12F);
             btn_GetVidPages.Location = new Point(164, 612);
             btn_GetVidPages.Name = "btn_GetVidPages";
@@ -115,20 +116,22 @@
             btn_GetVidPages.UseVisualStyleBackColor = true;
             btn_GetVidPages.Click += btn_Scrape_Click;
             // 
-            // btn_scrape
+            // btn_QueVideos
             // 
-            btn_scrape.Font = new Font("Segoe UI", 12F);
-            btn_scrape.Location = new Point(328, 612);
-            btn_scrape.Name = "btn_scrape";
-            btn_scrape.Size = new Size(100, 30);
-            btn_scrape.TabIndex = 2;
-            btn_scrape.Text = "Get Vids";
-            tip.SetToolTip(btn_scrape, "Get links from collected urls and download vids");
-            btn_scrape.UseVisualStyleBackColor = true;
-            btn_scrape.Click += btn_QueueVids_Click;
+            btn_QueVideos.FlatStyle = FlatStyle.System;
+            btn_QueVideos.Font = new Font("Segoe UI", 12F);
+            btn_QueVideos.Location = new Point(328, 612);
+            btn_QueVideos.Name = "btn_QueVideos";
+            btn_QueVideos.Size = new Size(100, 30);
+            btn_QueVideos.TabIndex = 2;
+            btn_QueVideos.Text = "Que Vids";
+            tip.SetToolTip(btn_QueVideos, "Get links from collected urls and download vids");
+            btn_QueVideos.UseVisualStyleBackColor = true;
+            btn_QueVideos.Click += btn_QueueVids_Click;
             // 
             // btn_download
             // 
+            btn_download.FlatStyle = FlatStyle.System;
             btn_download.Font = new Font("Segoe UI", 12F);
             btn_download.Location = new Point(455, 612);
             btn_download.Name = "btn_download";
@@ -307,6 +310,7 @@
             // 
             // btn_Testing
             // 
+            btn_Testing.FlatStyle = FlatStyle.System;
             btn_Testing.Font = new Font("Segoe UI", 12F);
             btn_Testing.Location = new Point(573, 612);
             btn_Testing.Name = "btn_Testing";
@@ -371,7 +375,7 @@
             Controls.Add(tableLayoutPanel1);
             Controls.Add(rtb_main);
             Controls.Add(btn_download);
-            Controls.Add(btn_scrape);
+            Controls.Add(btn_QueVideos);
             Controls.Add(btn_GetVidPages);
             Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
@@ -397,7 +401,7 @@
         private ToolStripStatusLabel tsl_status;
         private NotifyIcon notifyIcon1;
         private Button btn_GetVidPages;
-        private Button btn_scrape;
+        private Button btn_QueVideos;
         private Button btn_download;
         private MenuStrip menuStrip1;
         private ToolStripMenuItem settingsToolStripMenuItem;

@@ -1,7 +1,7 @@
-﻿// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -39,7 +39,6 @@ public class UrlDownloader : IAsyncDisposable
     private readonly string _downloadDirectory;
 
     private readonly HttpClient _httpClient;
-    private readonly ILogger _logger = Program.Logger;
     private readonly int _maxConcurrency;
     private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
     private readonly ConcurrentQueue<string> _urlQueue = new();
@@ -55,7 +54,7 @@ public class UrlDownloader : IAsyncDisposable
     /// </summary>
     /// <param name="maxConcurrency">The maximum number of concurrent downloads. Must be greater than 0.</param>
     /// <param name="downloadDirectory">The directory where files will be saved. It will be created if it doesn't exist.</param>
-    public UrlDownloader( IEventAggregator aggregator)
+    public UrlDownloader(IEventAggregator aggregator)
     {
 
         _aggregator = aggregator;
@@ -73,8 +72,8 @@ public class UrlDownloader : IAsyncDisposable
                     retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
                     (outcome, timespan, retryCount, context) =>
                     {
-                        _logger.LogDebug(
-                                    $"[RETRY] Attempt {retryCount} failed for URL {context["url"]}. Delaying for {timespan.TotalSeconds}s. Reason: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}");
+                        Program.Logger.LogDebug(
+                                     $"[RETRY] Attempt {retryCount} failed for URL {context["url"]}. Delaying for {timespan.TotalSeconds}s. Reason: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}");
                     });
     }
 
@@ -102,13 +101,16 @@ public class UrlDownloader : IAsyncDisposable
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        MessageBox.Show("dispose called");
         await SaveQueueAsync();
 
         if (_httpClient is IAsyncDisposable httpClientAsyncDisposable)
+        {
             await httpClientAsyncDisposable.DisposeAsync();
+        }
         else
+        {
             _httpClient.Dispose();
+        }
     }
 
 
@@ -165,9 +167,10 @@ public class UrlDownloader : IAsyncDisposable
     private async Task DownloadWorkerAsync()
     {
         while (_urlQueue.TryDequeue(out string? url))
+        {
             try
             {
-                _logger.LogDebug($"Processing Url {url}...");
+                Program.Logger.LogDebug($"Processing Url {url}...");
                 await ProcessUrlAsync(url);
             }
             catch (Exception ex)
@@ -175,6 +178,7 @@ public class UrlDownloader : IAsyncDisposable
                 // Catch any unexpected errors during processing a single URL.
                 OnDownloadFailed(new DownloadFailedEventArgs(url, ex));
             }
+        }
     }
 
 
@@ -202,11 +206,14 @@ public class UrlDownloader : IAsyncDisposable
     {
         string filePath = DownloaderOptions.Default.QueueFilename;
 
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A valid file path must be provided.", nameof(filePath));
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("A valid file path must be provided.", nameof(filePath));
+        }
 
         if (!File.Exists(filePath))
         {
-            _logger.LogInformation($"Queue file '{filePath}' does not exist. Nothing to load.");
+            Program.Logger.LogInformation($"Queue file '{filePath}' does not exist. Nothing to load.");
             return;
         }
 
@@ -226,11 +233,11 @@ public class UrlDownloader : IAsyncDisposable
                 }
             }
 
-            _logger.LogInformation($"Loaded {loadedCount} URLs from queue file '{filePath}'.");
+            Program.Logger.LogInformation($"Loaded {loadedCount} URLs from queue file '{filePath}'.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to load queue from {filePath}");
+            Program.Logger.LogError(ex, $"Failed to load queue from {filePath}");
             throw;
         }
     }
@@ -243,7 +250,7 @@ public class UrlDownloader : IAsyncDisposable
 
     protected virtual void OnDownloadCompleted(DownloadCompletedEventArgs e)
     {
-        _logger.LogDebug($"Download complete: {e.FilePath}");
+        Program.Logger.LogDebug($"Download complete: {e.FilePath}");
         _aggregator.Publish(new QueueCountMessage(QueueCount));
         DownloadCompleted?.Invoke(this, e);
 
@@ -268,7 +275,7 @@ public class UrlDownloader : IAsyncDisposable
 
     protected virtual void OnQueueFinished()
     {
-        _logger.LogDebug("The download queue has been processed. Downloader exiting.");
+        Program.Logger.LogDebug("The download queue has been processed. Downloader exiting.");
         QueueFinished?.Invoke(this, EventArgs.Empty);
     }
 
@@ -299,7 +306,10 @@ public class UrlDownloader : IAsyncDisposable
         // Get the expected content length from headers.
         long? expectedLength = response.Content.Headers.ContentLength;
 
-        if (!expectedLength.HasValue) throw new InvalidOperationException($"Could not determine the file size for '{url}'. Content-Length header is missing.");
+        if (!expectedLength.HasValue)
+        {
+            throw new InvalidOperationException($"Could not determine the file size for '{url}'. Content-Length header is missing.");
+        }
 
         // Download the file content.
         using (var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
@@ -346,7 +356,10 @@ public class UrlDownloader : IAsyncDisposable
     /// <param name="url">The URL to queue.</param>
     public void QueueUrl(string url)
     {
-        if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute)) throw new ArgumentException("A valid URL must be provided.", nameof(url));
+        if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
+        {
+            throw new ArgumentException("A valid URL must be provided.", nameof(url));
+        }
 
         _urlQueue.Enqueue(url);
     }
@@ -371,7 +384,10 @@ public class UrlDownloader : IAsyncDisposable
     /// </exception>
     public void QueueUrls(IEnumerable<string> urls)
     {
-        foreach (string url in urls) QueueUrl(url);
+        foreach (string url in urls)
+        {
+            QueueUrl(url);
+        }
     }
 
 
@@ -399,21 +415,27 @@ public class UrlDownloader : IAsyncDisposable
     {
         string filePath = DownloaderOptions.Default.QueueFilename;
 
-        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A valid file path must be provided.", nameof(filePath));
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            throw new ArgumentException("A valid file path must be provided.", nameof(filePath));
+        }
 
         string? directory = Path.GetDirectoryName(filePath);
 
-        if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory)) _ = Directory.CreateDirectory(directory);
+        if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
+        {
+            _ = Directory.CreateDirectory(directory);
+        }
 
         try
         {
             string[] urls = _urlQueue.ToArray();
             await File.WriteAllLinesAsync(filePath, urls);
-            _logger.LogInformation($"Queue saved to {filePath} ({urls.Length} URLs).");
+            Program.Logger.LogInformation($"Queue saved to {filePath} ({urls.Length} URLs).");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to save queue to {filePath}");
+            Program.Logger.LogError(ex, $"Failed to save queue to {filePath}");
 
         }
     }
@@ -440,14 +462,16 @@ public class UrlDownloader : IAsyncDisposable
         // Ensure the download directory exists.
         _ = Directory.CreateDirectory(_downloadDirectory);
 
-        _logger.LogInformation($"Starting download process with max concurrency of {_maxConcurrency}...");
+        Program.Logger.LogInformation($"Starting download process with max concurrency of {_maxConcurrency}...");
 
         var workerTasks = new List<Task>();
 
         for (int i = 0; i < _maxConcurrency; i++)
+        {
 
-                    // Each worker is a long-running task that will pull from the queue.
+            // Each worker is a long-running task that will pull from the queue.
             workerTasks.Add(DownloadWorkerAsync());
+        }
 
         // Wait for all worker tasks to complete. A worker completes when the queue is empty.
         await Task.WhenAll(workerTasks);
@@ -464,7 +488,7 @@ public class UrlDownloader : IAsyncDisposable
 
     public async Task StopAllTasksAsync()
     {
-        _logger.LogInformation("Stopping all download tasks...");
+        Program.Logger.LogInformation("Stopping all download tasks...");
 
         await SaveQueueAsync();
 
@@ -476,7 +500,7 @@ public class UrlDownloader : IAsyncDisposable
         // Notify that the queue has been cleared.
         OnQueueFinished();
 
-        _logger.LogInformation("Remaining tasks have been saved to file. All download tasks have been stopped.");
+        Program.Logger.LogInformation("Remaining tasks have been saved to file. All download tasks have been stopped.");
     }
 
 }

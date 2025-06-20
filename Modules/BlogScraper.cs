@@ -1,7 +1,7 @@
-﻿// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -12,9 +12,11 @@ using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
 
+using PuppeteerSharp.Helpers;
 
 
-namespace MediaRecycler.Modules.Interfaces
+
+namespace MediaRecycler.Modules
 {
 
 
@@ -41,10 +43,9 @@ namespace MediaRecycler.Modules
 
         private readonly HashSet<string> _collectedUrls = [];
 
-        private readonly ILogger _logger;
 
-        private readonly IWebAutomationService _webAutomationService;
         private readonly string startingUrl;
+        private IWebAutomationService _webAutomationService;
 
 
 
@@ -52,15 +53,12 @@ namespace MediaRecycler.Modules
 
 
 
-        public BlogScraper(IEventAggregator aggregator, ILogger<MainForm> logger)
+        public BlogScraper(IEventAggregator aggregator)
         {
-            _webAutomationService = new PuppeteerAutomationService(_aggregator);
 
-            //_scraperOptions = Scraping.
             _aggregator = aggregator ?? throw new ArgumentNullException(nameof(aggregator), "EventAggregator cannot be null.");
             startingUrl = ScrapingOptions.Default.StartingWebPage ?? throw new ArgumentNullException(nameof(ScrapingOptions.Default.StartingWebPage),
                         "StartingWebPage cannot be null. Please set it in the Scraping options.");
-            _logger = logger;
         }
 
 
@@ -85,11 +83,18 @@ namespace MediaRecycler.Modules
         public async Task BeginScrapingTargetBlogAsync()
         {
             if (string.IsNullOrWhiteSpace(ScrapingOptions.Default.GroupingSelector))
+            {
                 throw new InvalidOperationException("GroupingSelector is null. Check Scraping Options and try again.");
+            }
 
             try
             {
-                //  await _webAutomationService.DoSiteLoginAsync().ConfigureAwait(false);
+
+                var AutomationService = new PuppeteerAutomationService(_aggregator);
+                await AutomationService.InitializeAsync();
+                _webAutomationService = AutomationService;
+
+                //  await AutomationService.DoSiteLoginAsync().ConfigureAwait(false);
 
                 //TODO: change this to use the starting URL from the options
                 //Go to the first page of the archive for the single blog and filter to videos only
@@ -97,70 +102,82 @@ namespace MediaRecycler.Modules
                 // This is not a recommended approach, as it assumes the archive page is always at this URL and hardcoded values.
                 ReportStatus($"Loading page {ScrapingOptions.Default.StartingWebPage}...");
 
-                await _webAutomationService.GoToAsync(ScrapingOptions.Default.StartingWebPage).ConfigureAwait(false);
+                await AutomationService.GoToAsync(ScrapingOptions.Default.StartingWebPage).WithTimeout(60000).ConfigureAwait(false);
+
+                // Check if the page requires login
+                string content = await AutomationService.GetPageContentsAsync();
+
+                if (content.Contains("Please log in to view archive"))
+                {
+                    // If login is required, perform the login operation
+                    await AutomationService.DoSiteLoginAsync().ConfigureAwait(false);
+                    // After login, navigate to the starting page again
+                    await AutomationService.GoToAsync(ScrapingOptions.Default.StartingWebPage).WithTimeout(60000).ConfigureAwait(false);
+                }
+
 
                 int pageNumber = 1;
                 bool hasNextPage = true;
 
 
-                await _webAutomationService.WaitForSelectorAsync(ScrapingOptions.Default.GroupingSelector!).ConfigureAwait(false);
+                await AutomationService.WaitForSelectorAsync(ScrapingOptions.Default.GroupingSelector!).WithTimeout(60000).ConfigureAwait(false);
 
-
-
-
-
-
-
-
-                if (ScrapingOptions.Default.SinglePageScan)
+                while (hasNextPage)
                 {
-                    await ExtractPageLinksAsync().ConfigureAwait(false);
-                }
-                else
-                {
-                    while (hasNextPage)
+
+                    // This only collects the urls that contains videos not the actual video content.
+                    var pageLinks = await AutomationService.GetNodeCollectionFromPageAsync(ScrapingOptions.Default.GroupingSelector!).ConfigureAwait(false);
+
+                    foreach (var anchorHandle in pageLinks)
                     {
-                        await ExtractPageLinksAsync().ConfigureAwait(false);
+                        var hrefProperty = await anchorHandle.GetPropertyAsync("href").ConfigureAwait(false);
+                        string? url = await hrefProperty.JsonValueAsync<string>().ConfigureAwait(false);
+                        _ = _collectedUrls.Add(url);
+                    }
+                    // TODO: Selector needs refinement if it's selecting non-next links.
+                    // Maybe look for specific text or 'rel=next' attribute if available.
+                    // Example: "ul.pagination li:not(.disabled) a[rel='next']" or similar
+                    hasNextPage = await AutomationService.IsElementVisibleAsync(ScrapingOptions.Default.PaginationSelector).ConfigureAwait(false);
 
+                    if (hasNextPage)
+                    {
+                        Program.Logger.LogInformation("Clicking next page....");
 
-                        // TODO: Selector needs refinement if it's selecting non-next links.
-                        // Maybe look for specific text or 'rel=next' attribute if available.
-                        // Example: "ul.pagination li:not(.disabled) a[rel='next']" or similar
-                        hasNextPage = await _webAutomationService.IsElementVisibleAsync(ScrapingOptions.Default.PaginationSelector).ConfigureAwait(false);
+                        await AutomationService.ClickElementAsync(ScrapingOptions.Default.PaginationSelector).ConfigureAwait(false);
+                        pageNumber++;
 
-                        if (hasNextPage)
-                        {
-                            _logger.LogInformation("Clicking next page....");
-
-                            await _webAutomationService.ClickElementAsync(ScrapingOptions.Default.PaginationSelector).ConfigureAwait(false);
-                            pageNumber++;
-
-                            //  _aggregator.Publish(new PageNumberMessage(pageNumber));
-                        }
-                    } 
+                        //  _aggregator.Publish(new PageNumberMessage(pageNumber));
+                    }
                 }
 
-                   
+
 
 
                 ReportStatus($"Found {_collectedUrls.Count} video containing urls on {pageNumber} pages during scraping operations.");
                 SaveCollectedUrls();
+
+                ReportStatus("Starting to extract and download video urls.");
+                _aggregator.Publish(new StatusBarMessage("Downloading collected links is starting..."));
+                
+                
+                // Now we have all the links, we can start downloading them.
+                await DownloadCollectedLinksAsync(_collectedUrls);
+
             }
             catch (Exception ex)
             {
 
-                ReportStatus($"{ex.Message}\n{ex.StackTrace}");
+                ReportStatus($"{ex.Message}");
                 ReportStatus("BlogScraper::BeginScrapingTargetSiteAsync - An error occured during scraping.");
                 SaveCollectedUrls(); //save what we have so far
-
 
             }
             finally
             {
-                // Ensure the web automation service is disposed of properly.
-                await _webAutomationService.DisposeAsync().ConfigureAwait(false);
+                await _webAutomationService.DisposeAsync();
             }
         }
+
 
 
 
@@ -187,9 +204,10 @@ namespace MediaRecycler.Modules
 
 
 
-        public Task CancelAsync()
+        public ValueTask CancelAsync()
         {
-            throw new NotImplementedException();
+            Thread.Sleep(10000);
+            return ValueTask.CompletedTask;
         }
 
 
@@ -201,8 +219,13 @@ namespace MediaRecycler.Modules
         public async ValueTask DisposeAsync()
         {
             if (_webAutomationService is IAsyncDisposable asyncDisposable)
+            {
                 await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-            else if (_webAutomationService is IDisposable disposable) disposable.Dispose();
+            }
+            else if (_webAutomationService is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
         }
 
 
@@ -210,40 +233,79 @@ namespace MediaRecycler.Modules
 
 
 
-
-        public async Task DownloadCollectedLinksAsync()
+        /// <summary>
+        /// Attempts to extract video links from the collected URLs passed in as a param or from file that was saved during a previous application run.
+        /// It adds the video links to a download queue and starts the download process.
+        /// </summary>
+        /// <param name="collectedUrls"></param>
+        /// <returns></returns>
+        /// <remarks>In the event of an abnormal application termination the download queue is saved to file at it's present state.</remarks>
+        public async Task DownloadCollectedLinksAsync(HashSet<string>? collectedUrls = null)
         {
-            string[] links = GetCollectedLinksFromFiles();
+            TaskCompletionSource tcs = new();
+            _aggregator.Publish(new StatusBarMessage("Downloader module is starting..."));
+            _aggregator.Publish(new StatusMessage("Loading collected links.."));
+            string[]? links = null;
+            
+
+            if(collectedUrls == null || collectedUrls.Count == 0)
+            {
+                //We weren't passed links, so we will try and load them from the files.
+                links = GetCollectedLinksFromFiles();
+
+                if (links.Length == 0)
+                {
+
+                }
+            }
+            
             UrlDownloader downloader = new(_aggregator);
 
+            try
+            {
+                var AutomationService = new PuppeteerAutomationService(_aggregator);
+                await AutomationService.InitializeAsync();
+                _webAutomationService = AutomationService;
 
 
+            }
+            catch (Exception ex)
+            {
+
+                ReportStatus("Fatal error creating control modules, restart application and try again.");
+                _aggregator.Publish(new StatusBarMessage("Failed to create Automation Manager."));
+                tcs.SetException(ex);
+            }
 
             // --- Subscribe to Events ---
             downloader.DownloadCompleted += (sender, e) =>
             {
-                _logger.LogInformation($"[SUCCESS] Downloaded: {e.Url}");
-                _logger.LogInformation($"          -> Saved to: {e.FilePath}");
-                _logger.LogInformation($"          -> Size: {e.FileSizeBytes / 1024.0:F2} KB");
+                Program.Logger.LogInformation($"[SUCCESS] Downloaded: {e.Url}");
+                Program.Logger.LogInformation($"          -> Saved to: {e.FilePath}");
+                Program.Logger.LogInformation($"          -> Size: {e.FileSizeBytes / 1024.0:F2} KB");
             };
 
             downloader.DownloadFailed += (sender, e) =>
             {
-                _logger.LogInformation($"[FAILURE] Failed: {e.Url}");
-                _logger.LogInformation($"          -> Reason: {e.Exception.Message}");
+                Program.Logger.LogInformation($"[FAILURE] Failed: {e.Url}");
+                Program.Logger.LogInformation($"          -> Reason: {e.Exception.Message}");
             };
 
-            downloader.QueueFinished += (sender, e) => { _logger.LogInformation("\n--- All downloads have been processed. ---"); };
+            downloader.QueueFinished += (sender, e) => { Program.Logger.LogInformation("\n--- All downloads have been processed. ---"); };
 
             try
             {
-                if (links.Length == 0) return;
+                if (links.Length == 0)
+                {
+                    _aggregator.Publish(new StatusMessage("No links found to download. Please scrape first."));
+                    Program.Logger.LogInformation("No links were loaded to process..");
+                    return;
+                }
 
-                for (int a = 0; a <= links.Length; a++)
+                _aggregator.Publish(new StatusMessage("Extracting video links adding to queue..."));
+                for (int a = 0; a <= links.Length - 1; a++)
                 {
                     await _webAutomationService.GoToAsync(links[a]);
-
-
                     var sourceHandle = await _webAutomationService.QuerySelectorAsync(@"\video > source").ConfigureAwait(false);
 
                     if (sourceHandle != null)
@@ -252,22 +314,21 @@ namespace MediaRecycler.Modules
                         downloader.QueueUrl(videoLink);
                         _aggregator.Publish(new QueueCountMessage(downloader.QueueCount));
                     }
-
-
-
                 }
 
+                // --- Start the downloader ---
+                _aggregator.Publish(new StatusMessage("Starting Downloader......."));
                 await downloader.StartDownloadsAsync();
 
 
-                _logger.LogInformation("Downloader module has finished. Cleaning up.");
+                Program.Logger.LogInformation("Downloader module has finished. Cleaning up.");
 
 
-
+                _aggregator.Publish(new StatusMessage("Downloader finished.."));
             }
             catch (Exception e)
             {
-                _logger.LogInformation(e, "An unexpected error occured during downloading");
+                Program.Logger.LogInformation(e, "An unexpected error occured during downloading");
 
             }
             finally
@@ -306,6 +367,7 @@ namespace MediaRecycler.Modules
             var allLines = new List<string>();
 
             foreach (string file in txtFiles)
+            {
                 try
                 {
                     string[] lines = File.ReadAllLines(file);
@@ -316,6 +378,7 @@ namespace MediaRecycler.Modules
                 {
                     _aggregator?.Publish(new StatusMessage($"Error reading file '{file}': {ex.Message}"));
                 }
+            }
 
             return allLines.ToArray();
         }
@@ -355,9 +418,10 @@ namespace MediaRecycler.Modules
             {
                 string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CollectedUrls.txt");
 
-                if (File.Exists(filePath)) filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Path.GetRandomFileName() + ".txt");
 
-                File.WriteAllLines(filePath, _collectedUrls);
+
+                File.AppendAllLines(filePath, _collectedUrls);
+
                 ReportStatus($"Successfully saved {_collectedUrls.Count} URLs to {filePath}.");
             }
             catch (Exception ex)

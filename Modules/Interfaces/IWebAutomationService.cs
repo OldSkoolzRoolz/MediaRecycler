@@ -1,7 +1,7 @@
-﻿// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -59,7 +59,7 @@ public interface IWebAutomationService
 
 
 
-    Task<string> GetElementTextAsync(string selector);
+    Task<string?> GetElementTextAsync(string selector);
 
 
 
@@ -92,8 +92,20 @@ public interface IWebAutomationService
 
 
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <returns></returns>
+    Task<string> GetPageContentsAsync();
 
 
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="url"></param>
+    /// <returns></returns>
     Task<string> GetPageContentsAsync(string url);
 
 

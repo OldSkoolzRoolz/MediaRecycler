@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -48,7 +52,7 @@ public static class ProcessUtils
     public static int KillProcessesByName(string processName, ILogger? logger = null)
     {
         logger ??= NullLogger.Instance; // Use NullLogger if none provided
-        var killedCount = 0;
+        int killedCount = 0;
 
         if (string.IsNullOrWhiteSpace(processName))
         {

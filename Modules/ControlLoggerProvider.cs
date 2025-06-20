@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -106,7 +110,7 @@ public class ControlLogger : ILogger
             return;
         }
 
-        var message = $"{DateTime.Now:HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}";
+        string message = $"{DateTime.Now:HH:mm:ss} [{logLevel}] {_categoryName}: {formatter(state, exception)}";
 
         if (exception != null)
         {

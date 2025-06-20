@@ -1,7 +1,7 @@
-﻿// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -12,7 +12,6 @@
 
 
 using System.ComponentModel;
-using System.Globalization;
 
 using MediaRecycler.Modules.Options;
 
@@ -83,7 +82,7 @@ public partial class DownloaderSettingsForm : Form
         set => settings.RetryDelay = TimeSpan.FromSeconds(value);
     }
 
- 
+
 
 
 
@@ -100,8 +99,8 @@ public partial class DownloaderSettingsForm : Form
         }
         catch (Exception exception)
         {
-            MessageBox.Show("Error saving settings to file.");
-            Program.Logger.LogError(exception,"Error saving settings.");
+            _ = MessageBox.Show("Error saving settings to file.");
+            Program.Logger.LogError(exception, "Error saving settings.");
             settings.ReloadSettings();
         }
     }

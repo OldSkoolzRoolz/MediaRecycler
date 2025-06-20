@@ -1,7 +1,7 @@
-// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -161,17 +161,30 @@ public class DownloaderOptions : ApplicationSettingsBase
 
     public void Validate()
     {
-        if (string.IsNullOrWhiteSpace(DownloadPath) || !Path.IsPathRooted(DownloadPath)) throw new ArgumentException("DownloadPath must be a valid absolute path.");
+        if (string.IsNullOrWhiteSpace(DownloadPath) || !Path.IsPathRooted(DownloadPath))
+        {
+            throw new ArgumentException("DownloadPath must be a valid absolute path.");
+        }
 
-        if (MaxConcurrency is <= 0 or > 100) throw new ArgumentOutOfRangeException(nameof(MaxConcurrency), "MaxConcurrency must be between 1 and 100.");
+        if (MaxConcurrency is <= 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxConcurrency), "MaxConcurrency must be between 1 and 100.");
+        }
 
-        if (MaxRetries is < 0 or > 10) throw new ArgumentOutOfRangeException(nameof(MaxRetries), "MaxRetries must be between 0 and 10.");
+        if (MaxRetries is < 0 or > 10)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxRetries), "MaxRetries must be between 0 and 10.");
+        }
 
-
-        if (MaxConsecutiveFailures is < 0 or > 20) throw new ArgumentOutOfRangeException(nameof(MaxConsecutiveFailures), "MaxConsecutiveFailures must be between 0 and 20.");
+        if (MaxConsecutiveFailures is < 0 or > 20)
+        {
+            throw new ArgumentOutOfRangeException(nameof(MaxConsecutiveFailures), "MaxConsecutiveFailures must be between 0 and 20.");
+        }
 
         if (!TimeSpan.TryParse(RetryDelayString, out var delay) || delay <= TimeSpan.Zero || delay > TimeSpan.FromHours(1))
+        {
             throw new ArgumentException("RetryDelay must be a valid TimeSpan greater than zero and less than or equal to 1 hour.");
+        }
     }
 
 }

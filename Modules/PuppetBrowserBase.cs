@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -21,7 +25,6 @@ namespace MediaRecycler.Modules;
 public class PuppetBrowserBase : IAsyncDisposable
 {
 
-    protected readonly ILogger _browserLogger;
     private bool _disposed; // To detect redundant calls
     protected HeadlessBrowserOptions _launchOptions = new();
 
@@ -30,32 +33,13 @@ public class PuppetBrowserBase : IAsyncDisposable
 
 
 
-    public PuppetBrowserBase(ILogger factory)
+    public PuppetBrowserBase()
     {
-        // Use NullLogger if null is passed, preventing NullReferenceExceptions later
-        _browserLogger = factory;
-        Init();
 
     }
 
 
 
-
-
-
-
-    private async void Init()
-    {
-        try
-        {
-            await InitializeAsync(HeadlessBrowserOptions.Default);
-        }
-        catch (Exception e)
-        {
-
-           _browserLogger.LogError(e.Message);
-        }
-    }
 
 
 
@@ -99,7 +83,7 @@ public class PuppetBrowserBase : IAsyncDisposable
     {
         // Method will setup a network monitor mechanism that will watch
         // for invalid connection situations and prevent browser instantiation or renew it.
-        _browserLogger.LogWarning("ConfigureNetworkMonitor is not implemented in the base class.");
+        Program.Logger.LogWarning("ConfigureNetworkMonitor is not implemented in the base class.");
 
         // Keep or remove based on actual need. If keeping, derived classes should override.
         // throw new NotImplementedException("Network monitoring setup is not implemented.");
@@ -121,7 +105,7 @@ public class PuppetBrowserBase : IAsyncDisposable
             if (disposing)
             {
                 // Dispose managed state (managed objects).
-                _browserLogger.LogInformation("Disposing browser resources (disposing={Disposing})...", disposing);
+                Program.Logger.LogInformation("Disposing browser resources (disposing={Disposing})...", disposing);
 
                 if (Browser != null)
                 {
@@ -129,12 +113,12 @@ public class PuppetBrowserBase : IAsyncDisposable
                     {
                         await Browser.CloseAsync(); // Prefer CloseAsync then DisposeAsync for browser
                         await Browser.DisposeAsync();
-                        _browserLogger.LogInformation("Browser disposed successfully.");
+                        Program.Logger.LogInformation("Browser disposed successfully.");
                     }
                     catch (Exception ex)
                     {
                         // Log error but do not throw from Dispose
-                        _browserLogger.LogError(ex, "Error disposing browser instance. Swallowing exception.");
+                        Program.Logger.LogError(ex, "Error disposing browser instance. Swallowing exception.");
                     }
                     finally
                     {
@@ -143,7 +127,7 @@ public class PuppetBrowserBase : IAsyncDisposable
                 }
                 else
                 {
-                    _browserLogger.LogDebug("Browser instance was already null. No browser disposal needed.");
+                    Program.Logger.LogDebug("Browser instance was already null. No browser disposal needed.");
                 }
             }
 
@@ -154,7 +138,7 @@ public class PuppetBrowserBase : IAsyncDisposable
         }
         else
         {
-            _browserLogger.LogDebug("DisposeAsync called on an already disposed instance.");
+            Program.Logger.LogDebug("DisposeAsync called on an already disposed instance.");
         }
     }
 
@@ -168,7 +152,7 @@ public class PuppetBrowserBase : IAsyncDisposable
     ///     If the browser is already initialized, this method will return without creating a new instance.
     /// </summary>
     /// <exception cref="Exception">Propagates exceptions from PuppeteerSharp during browser launch.</exception>
-    public virtual async Task InitializeAsync(HeadlessBrowserOptions launchOptions)
+    public virtual async Task CreateBrowserTaskAsync(HeadlessBrowserOptions launchOptions)
     {
         ArgumentNullException.ThrowIfNull(launchOptions, nameof(launchOptions));
         _launchOptions = launchOptions;
@@ -176,13 +160,13 @@ public class PuppetBrowserBase : IAsyncDisposable
         // Prevent re-initialization
         if (Browser != null)
         {
-            _browserLogger.LogWarning("InitializeAsync called but browser is already initialized.");
+            Program.Logger.LogWarning("InitializeAsync called but browser is already initialized.");
             return;
         }
 
         if (_disposed)
         {
-            _browserLogger.LogError("InitializeAsync called on a disposed instance.");
+            Program.Logger.LogError("InitializeAsync called on a disposed instance.");
             throw new ObjectDisposedException(nameof(PuppetBrowserBase));
         }
 
@@ -190,26 +174,26 @@ public class PuppetBrowserBase : IAsyncDisposable
 
         try
         {
-            _browserLogger.LogInformation("Initializing browser...");
+            Program.Logger.LogInformation("Initializing browser...");
 
 
             Browser = await Puppeteer.LaunchAsync(new LaunchOptions
             {
-                        Headless = HeadlessBrowserOptions.Default.Headless,
-                        DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
-                        ExecutablePath = Properties.Settings.Default.PuppeteerExecutablePath,
-                        Timeout = HeadlessBrowserOptions.Default.Timeout // Set timeout for browser launch
+                Headless = HeadlessBrowserOptions.Default.Headless,
+                DefaultViewport = new ViewPortOptions { Width = 1200, Height = 1000 },
+                ExecutablePath = Properties.Settings.Default.PuppeteerExecutablePath,
+                Timeout = HeadlessBrowserOptions.Default.Timeout // Set timeout for browser launch
 
 
             });
 
             Browser.DefaultWaitForTimeout = ScrapingOptions.Default.DefaultPuppeteerTimeout;
-            _browserLogger.LogInformation("Browser initialized successfully. Endpoint: {Endpoint}", Browser.WebSocketEndpoint);
-            
+            Program.Logger.LogInformation("Browser initialized successfully. Endpoint: {Endpoint}", Browser.WebSocketEndpoint);
+
         }
         catch (Exception ex)
         {
-            _browserLogger.LogError(ex, "Error initializing browser.");
+            Program.Logger.LogError(ex, "Error initializing browser.");
             Browser = null; // Ensure browser is null if initialization fails
         }
 

@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -63,7 +67,7 @@ public class VideoLinkExtractor
                 try
                 {
                     hrefHandle = await nodeHandle.GetPropertyAsync(ScrapingOptions.Default.TargetPropertySelector);
-                    var link = await hrefHandle?.JsonValueAsync<string>()!;
+                    string link = await hrefHandle?.JsonValueAsync<string>()!;
 
                     if (!string.IsNullOrWhiteSpace(link))
                     {
@@ -149,7 +153,7 @@ public class VideoLinkExtractor
                 return null;
             }
 
-            var videoSrcUrl = await srcHandle.JsonValueAsync<string>();
+            string videoSrcUrl = await srcHandle.JsonValueAsync<string>();
 
             if (string.IsNullOrWhiteSpace(videoSrcUrl))
             {
@@ -381,9 +385,9 @@ public class VideoLinkExtractor
     public static async Task<HashSet<string>> ParseBlogArchivePagesAsync(string currentArchiveUrl, ILogger scraperLogger, IPage page)
     {
         HashSet<string> allVideoPageLinks = [];
-        var pageNum = 1;
-        var nextPageAvailable = true;
-        var currentPageUrl = currentArchiveUrl; // Track the current URL for logging
+        int pageNum = 1;
+        bool nextPageAvailable = true;
+        string currentPageUrl = currentArchiveUrl; // Track the current URL for logging
 
         ArgumentNullException.ThrowIfNull(scraperLogger);
         ArgumentNullException.ThrowIfNull(page);
@@ -471,10 +475,10 @@ public class VideoLinkExtractor
 
         ScraperLogger.LogInformation("Found {Count} video page links for blog {BlogUrl}. Processing each...", videoPageLinks.Count, blogUrl);
         OnExtractionUpdate("Found " + videoPageLinks.Count + " video page links for blog " + blogUrl);
-        var processedCount = 0;
-        var failedCount = 0;
+        int processedCount = 0;
+        int failedCount = 0;
 
-        foreach (var link in videoPageLinks)
+        foreach (string link in videoPageLinks)
         {
             try
             {
@@ -488,7 +492,7 @@ public class VideoLinkExtractor
                 }
 
                 // Extract the direct video source URL
-                var videoSrcUrl = await ExtractVideoSourceUrlFromPageAsync(page, link);
+                string? videoSrcUrl = await ExtractVideoSourceUrlFromPageAsync(page, link);
 
                 // Enqueue the video source URL if found
                 if (!string.IsNullOrWhiteSpace(videoSrcUrl))
@@ -563,7 +567,7 @@ public class VideoLinkExtractor
 
 
         // variable used to limit processing for debugging.
-        var temp = 0;
+        int temp = 0;
 
 
         // --- Main Loop: Process URLs from Frontier ---

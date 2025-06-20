@@ -1,7 +1,7 @@
-﻿// Project Name: MediaRecycler
-// Author:  Kyle Crowder
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License
+// Distributed under Open Source License 
 // Do not remove file headers
 
 
@@ -15,6 +15,14 @@ public interface IBlogScraper : IScraper
 
     Task BeginScrapingTargetBlogAsync();
 
-    Task DownloadCollectedLinksAsync();
+
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="collectedUrls"></param>
+    /// <returns></returns>
+    Task DownloadCollectedLinksAsync(HashSet<string>? collectedUrls = null);
 
 }

@@ -1,4 +1,8 @@
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -55,11 +59,11 @@ public partial class ScraperSettingsForm : Form
         // Numeric bindings with conversion
         var timeoutBinding = txtDefaultTimeout.DataBindings.Add("Text", _settings, nameof(ScrapingOptions.Default.DefaultTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
         timeoutBinding.Format += (s, e) => e.Value = e.Value?.ToString();
-        timeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+        timeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out int v) ? v : 0;
 
         var puppeteerTimeoutBinding = txtDefaultPuppeteerTimeout.DataBindings.Add("Text", _settings, nameof(ScrapingOptions.Default.DefaultPuppeteerTimeout), true, DataSourceUpdateMode.OnPropertyChanged);
         puppeteerTimeoutBinding.Format += (s, e) => e.Value = e.Value?.ToString();
-        puppeteerTimeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out var v) ? v : 0;
+        puppeteerTimeoutBinding.Parse += (s, e) => e.Value = int.TryParse(e.Value?.ToString(), out int v) ? v : 0;
 
         // String and bool bindings
         _ = txtArchivePageUrlSuffix.DataBindings.Add("Text", _settings, nameof(ScrapingOptions.Default.ArchivePageUrlSuffix), true, DataSourceUpdateMode.OnPropertyChanged);

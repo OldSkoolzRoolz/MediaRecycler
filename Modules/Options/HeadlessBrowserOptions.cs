@@ -1,4 +1,8 @@
-﻿// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
 
 
 
@@ -250,22 +254,22 @@ public class HeadlessBrowserOptions : ApplicationSettingsBase
 
         return new LaunchOptions
         {
-                    Headless = Headless,
-                    ExecutablePath = ExecutablePath,
+            Headless = Headless,
+            ExecutablePath = ExecutablePath,
 
-                    // Args = string.IsNullOrWhiteSpace(Args) ? null : Args.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-                    UserDataDir = UserDataDir,
-                    Devtools = Devtools,
-                    DefaultViewport = null, // Set if you have a DefaultViewport object, otherwise null
+            // Args = string.IsNullOrWhiteSpace(Args) ? null : Args.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            UserDataDir = UserDataDir,
+            Devtools = Devtools,
+            DefaultViewport = null, // Set if you have a DefaultViewport object, otherwise null
 
-                    Timeout = Timeout,
-                    DumpIO = DumpIO,
-                    IgnoreDefaultArgs = IgnoreDefaultArgs,
-                    IgnoredDefaultArgs = string.IsNullOrWhiteSpace(IgnoredDefaultArgs) ? null : IgnoredDefaultArgs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            Timeout = Timeout,
+            DumpIO = DumpIO,
+            IgnoreDefaultArgs = IgnoreDefaultArgs,
+            IgnoredDefaultArgs = string.IsNullOrWhiteSpace(IgnoredDefaultArgs) ? null : IgnoredDefaultArgs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
 
 
-                    // Add other mappings as needed
-                    // Note: Some properties may not exist in LaunchOptions or may require conversion
+            // Add other mappings as needed
+            // Note: Some properties may not exist in LaunchOptions or may require conversion
         };
     }
 
