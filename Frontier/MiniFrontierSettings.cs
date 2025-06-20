@@ -4,10 +4,7 @@
 // Distributed under Open Source License 
 // Do not remove file headers
 
-
-
-
-namespace MediaRecycler.Modules;
+namespace MediaRecycler.Frontier;
 
 
 /// <summary>

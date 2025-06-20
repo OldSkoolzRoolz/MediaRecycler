@@ -11,7 +11,7 @@ using System.Collections.Concurrent;
 
 
 
-namespace MediaRecycler.Modules;
+namespace MediaRecycler.Modules.Loggers;
 
 
 public interface IMessage

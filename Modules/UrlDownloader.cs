@@ -13,8 +13,10 @@
 
 
 using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Http.Headers;
 
+using MediaRecycler.Modules.Loggers;
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
@@ -31,7 +33,7 @@ namespace MediaRecycler.Modules;
 ///     Manages a queue of URLs to download asynchronously with a specified level of concurrency.
 ///     Uses Polly for transient error handling and retries. Verifies download integrity by file size.
 /// </summary>
-public class UrlDownloader : IAsyncDisposable
+public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 {
 
     private readonly IEventAggregator _aggregator;
@@ -40,7 +42,7 @@ public class UrlDownloader : IAsyncDisposable
 
     private readonly HttpClient _httpClient;
     private readonly int _maxConcurrency;
-    private readonly AsyncRetryPolicy<HttpResponseMessage> _retryPolicy;
+    private readonly AsyncRetryPolicy _retryPolicy;
     private readonly ConcurrentQueue<string> _urlQueue = new();
 
 
@@ -68,13 +70,35 @@ public class UrlDownloader : IAsyncDisposable
         // Define a retry policy using Polly.
         // This policy will retry up to 3 times on HttpRequestException (network errors) 
         // or on HTTP 5xx server errors. It will use an exponential backoff strategy.
-        _retryPolicy = Policy.Handle<HttpRequestException>().OrResult<HttpResponseMessage>(response => (int)response.StatusCode >= 500).WaitAndRetryAsync(3,
-                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
-                    (outcome, timespan, retryCount, context) =>
+        _retryPolicy = Policy.Handle<HttpRequestException>().Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested)
+            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
+                    (exception, timespan, retryAttempt, context) =>
                     {
-                        Program.Logger.LogDebug(
-                                     $"[RETRY] Attempt {retryCount} failed for URL {context["url"]}. Delaying for {timespan.TotalSeconds}s. Reason: {outcome.Exception?.Message ?? outcome.Result.ReasonPhrase}");
+                        var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
+                        Program.Logger.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
+                                     retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
+                        return Task.CompletedTask;
                     });
+
+
+
+
+
+
+        var _retryPolicy2 = Policy.Handle<HttpRequestException>(ShouldRetryHttpRequest).Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested)
+              .WaitAndRetryAsync(DownloaderOptions.Default.MaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
+                          (exception, timespan, retryAttempt, context) =>
+                          {
+                              var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
+                              Program.Logger.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
+                                           retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
+                              return Task.CompletedTask;
+                          });
+
+
+
+
+
     }
 
 
@@ -89,6 +113,22 @@ public class UrlDownloader : IAsyncDisposable
     }
 
 
+
+
+
+    /// <summary>
+    ///     Determines whether an HTTP request should be retried based on the exception.
+    /// </summary>
+    private bool ShouldRetryHttpRequest(HttpRequestException ex)
+    {
+        if (ex.StatusCode is null or HttpStatusCode.Forbidden)
+        {
+            return false;
+        }
+
+        int statusCode = (int)ex.StatusCode;
+        return statusCode is >= 500 and <= 599 or (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests;
+    }
 
 
 

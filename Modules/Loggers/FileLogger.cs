@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 
 
-namespace MediaRecycler.Modules;
+namespace MediaRecycler.Modules.Loggers;
 
 
 public class FileLogger : ILogger

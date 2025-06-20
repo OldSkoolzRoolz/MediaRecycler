@@ -9,6 +9,7 @@
 
 using MediaRecycler.Modules;
 using MediaRecycler.Modules.Interfaces;
+using MediaRecycler.Modules.Loggers;
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;

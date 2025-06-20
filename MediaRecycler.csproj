@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <Optimize>True</Optimize>
+    <Optimize>False</Optimize>
     <DebugType>embedded</DebugType>
     <WarningLevel>8</WarningLevel>
     <IsPublishable>False</IsPublishable>
@@ -29,13 +29,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DebugType>portable</DebugType>
     <WarningLevel>8</WarningLevel>
-	  <Optimize>True</Optimize>
+	  <Optimize>False</Optimize>
     <IsPublishable>False</IsPublishable>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows|AnyCPU'">
     <Optimize>True</Optimize>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Modules\Scrapers.cs" />
+    <Compile Remove="Modules\VideoLinkExtractor.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="sync.ico" />

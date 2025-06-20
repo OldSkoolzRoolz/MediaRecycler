@@ -7,9 +7,8 @@
 
 
 
-using System.Diagnostics;
-
 using MediaRecycler.Modules;
+using MediaRecycler.Modules.Loggers;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,7 +36,7 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
-        KillPreviousWebBrowserProcesses();
+        ProcessUtils.TerminateBrowserProcesses();
 
 
         Application.SetCompatibleTextRenderingDefault(false);
@@ -97,73 +96,6 @@ internal static class Program
 
 
 
-
-    private static void KillPreviousWebBrowserProcesses()
-    {
-        var matchingProcesses =
-                    System.Diagnostics.Process.GetProcesses()
-                                /*
-                                2020-02-17
-                                .Where(process => process.StartInfo.Arguments.Contains(UserDataDirPath(), StringComparison.InvariantCultureIgnoreCase))
-                                */
-                                .Where(ProcessIsWebBrowser)
-                                .ToList();
-
-        foreach (var process in matchingProcesses)
-        {
-            if (process.HasExited)
-            {
-                continue;
-            }
-
-            process.Kill();
-        }
-    }
-
-    private static bool ProcessIsWebBrowser(System.Diagnostics.Process process)
-    {
-        try
-        {
-            return process.MainModule.FileName.Contains(".local-chromium");
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-
-
-    //Terminate all running processes with the name of chrome.exe and iexplorer.exe
-    private static void TerminateBrowserProcesses()
-    {
-        try
-        {
-            string[] processesToTerminate = new[] { "chrome", "msedge", "webview2" };
-
-            foreach (string? processName in processesToTerminate)
-            {
-                var processes = Process.GetProcessesByName(processName);
-
-                foreach (var process in processes)
-                {
-                    try
-                    {
-                        process.Kill();
-                        Logger?.LogInformation($"Terminated process: {process.ProcessName} (ID: {process.Id})");
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger?.LogWarning($"Failed to terminate process: {process.ProcessName} (ID: {process.Id}). Error: {ex.Message}");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger?.LogError($"An error occurred while terminating browser processes: {ex.Message}");
-        }
-    }
 
 
 }

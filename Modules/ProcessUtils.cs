@@ -6,25 +6,6 @@
 
 
 
-
-#region Header
-
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
-
-#endregion
-
-
-
-// "Open Source copyrights apply - All code can be reused DO NOT remove author tags"
-
-
-
-// Required for Win32Exception
-
-// For NullLogger
-
-
-
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -34,7 +15,6 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 
 namespace MediaRecycler.Modules;
-// Using a sub-namespace for utilities
 
 
 /// <summary>
@@ -85,5 +65,100 @@ public static class ProcessUtils
         logger.LogInformation("Finished killing processes. Terminated {KilledCount} processes named '{ProcessName}'.", killedCount, processName);
         return killedCount;
     }
+
+
+
+
+
+
+
+
+
+
+
+    public static void KillPreviousWebBrowserProcesses()
+    {
+        var matchingProcesses =
+                    System.Diagnostics.Process.GetProcesses()
+                                /*
+                                2020-02-17
+                                .Where(process => process.StartInfo.Arguments.Contains(UserDataDirPath(), StringComparison.InvariantCultureIgnoreCase))
+                                */
+                                .Where(ProcessIsWebBrowser)
+                                .ToList();
+
+        foreach (var process in matchingProcesses)
+        {
+            if (process.HasExited)
+            {
+                continue;
+            }
+
+            process.Kill();
+        }
+    }
+
+    public static bool ProcessIsWebBrowser(System.Diagnostics.Process process)
+    {
+        try
+        {
+            return process.MainModule.FileName.Contains(".local-chromium");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+
+
+    //Terminate all running processes with the name of chrome.exe and iexplorer.exe
+    public static void TerminateBrowserProcesses()
+    {
+        try
+        {
+            string[] processesToTerminate = new[] { "chrome", "msedge", "webview2" };
+
+            foreach (string? processName in processesToTerminate)
+            {
+                var processes = Process.GetProcessesByName(processName);
+
+                foreach (var process in processes)
+                {
+                    try
+                    {
+                        process.Kill();
+                        Program.Logger?.LogInformation($"Terminated process: {process.ProcessName} (ID: {process.Id})");
+                    }
+                    catch (Exception ex)
+                    {
+                        Program.Logger?.LogWarning($"Failed to terminate process: {process.ProcessName} (ID: {process.Id}). Error: {ex.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Program.Logger?.LogError($"An error occurred while terminating browser processes: {ex.Message}");
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
