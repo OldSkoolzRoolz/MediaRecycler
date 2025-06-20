@@ -1,0 +1,37 @@
+﻿
+
+
+
+  //page.Request -= Page_Request_BlockImages;
+
+
+
+            // ---> BEST LOCATION START <---
+            // Ensure interception is enabled (idempotent call after the first time)
+            // await page.SetRequestInterceptionAsync(true);
+
+            // Check if the handler is already attached to avoid duplicates if this method
+            // could somehow be called multiple times without page recreation.
+            // (A more robust way might involve storing handler state, but this is simpler)
+            // NOTE: PuppeteerSharp might handle duplicate event handler additions gracefully,
+            // but explicit checks can prevent potential issues or performance overhead.
+            // For simplicity in this common pattern, often the handler is just added.
+            // If performance is critical or complex handler management is needed,
+            // track the handler state more explicitly.
+
+            // Remove existing handlers first (safer if method might be re-entered for same page)
+            // This assumes only ONE type of request handler is managed by this function.
+            //  page.Request -= Page_Request_BlockImages; // Use a named handler
+            // Add the handler
+            //page.Request += Page_Request_BlockImages; // Use a named handler
+            // ---> BEST LOCATION END <---
+
+
+
+
+
+
+
+
+
+

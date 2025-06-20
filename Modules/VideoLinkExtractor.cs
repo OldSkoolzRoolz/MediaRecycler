@@ -11,6 +11,7 @@
 
 
 
+
 using KC.Crawler;
 
 using MediaRecycler.Modules.Options;
@@ -240,45 +241,19 @@ public class VideoLinkExtractor
 
 
 
-
-
     /// <summary>
-    ///     Starts processing a single archive page.
+    /// 
     /// </summary>
-    /// <param name="startUrl">The starting URL of the archive page.</param>
-    /// <param name="page">The Puppeteer page instance used for navigation and scraping.</param>
-    /// <param name="scraperSettings">Scraping settings and configurations.</param>
-    /// <param name="downloader">The downloader module for handling video downloads.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <param name="page"></param>
+    /// <param name="url"></param>
+    /// <param name="logger"></param>
+    /// <param name="pageDescription"></param>
+    /// <returns></returns>
     private static async Task<bool> NavigateToPageAsync(IPage page, string url, ILogger logger, string pageDescription)
     {
         try
         {
-            //page.Request -= Page_Request_BlockImages;
-
-
-
-            // ---> BEST LOCATION START <---
-            // Ensure interception is enabled (idempotent call after the first time)
-            // await page.SetRequestInterceptionAsync(true);
-
-            // Check if the handler is already attached to avoid duplicates if this method
-            // could somehow be called multiple times without page recreation.
-            // (A more robust way might involve storing handler state, but this is simpler)
-            // NOTE: PuppeteerSharp might handle duplicate event handler additions gracefully,
-            // but explicit checks can prevent potential issues or performance overhead.
-            // For simplicity in this common pattern, often the handler is just added.
-            // If performance is critical or complex handler management is needed,
-            // track the handler state more explicitly.
-
-            // Remove existing handlers first (safer if method might be re-entered for same page)
-            // This assumes only ONE type of request handler is managed by this function.
-            //  page.Request -= Page_Request_BlockImages; // Use a named handler
-            // Add the handler
-            //page.Request += Page_Request_BlockImages; // Use a named handler
-            // ---> BEST LOCATION END <---
-
-
+          
 
 
 
@@ -354,7 +329,9 @@ public class VideoLinkExtractor
 
 
 
-
+    /// <summary>
+    /// 
+    /// </summary>
     public static event EventHandler<string>? PageCountUpdates;
 
 

@@ -7,6 +7,8 @@
 
 
 
+using MediaRecycler.Modules.Interfaces;
+
 using Microsoft.Extensions.Logging;
 
 using PuppeteerSharp;
@@ -24,7 +26,7 @@ namespace MediaRecycler.Modules;
 ///     It encapsulates common puppeteersharp methods low-level browser interactions and includes
 ///     error handling and retry logic for individual actions.
 /// </summary>
-public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposable
+public class PuppeteerAutomationService :  IAsyncDisposable, IWebAutomationService
 {
 
     private readonly IEventAggregator? _aggregator;
