@@ -91,10 +91,14 @@ public class PuppeteerAutomationService :  IAsyncDisposable, IWebAutomationServi
         {
             _aggregator?.Publish(new StatusMessage($"Clicking element with selector '{paginationSelector}'..."));
             Program.Logger.LogDebug($"Clicking element with selector '{paginationSelector}'...");
-            await _puppeteerManager.Page.ClickAsync(paginationSelector).ConfigureAwait(false);
-            _ = await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded } })
-                        .WithTimeout(DefaultTimeout).ConfigureAwait(false);
+  
+            
+            await _puppeteerManager.Page.ClickAsync(paginationSelector).WithTimeout(60000).ConfigureAwait(false);
 
+            _ = await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle2 },Timeout=DefaultTimeout })
+                        .WithTimeout(DefaultTimeout).ConfigureAwait(false);
+            
+            await Task.Delay(5000); // Forced delay to ensure the page has fully loaded after navigation
 
         }
         catch (Exception ex)

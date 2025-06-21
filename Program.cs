@@ -38,7 +38,6 @@ internal static class Program
     {
         ProcessUtils.TerminateBrowserProcesses();
 
-
         Application.SetCompatibleTextRenderingDefault(false);
         Application.EnableVisualStyles();
         _ = Application.SetHighDpiMode(HighDpiMode.SystemAware);
@@ -51,6 +50,7 @@ internal static class Program
             _ = logBuilder.AddConsole();
             _ = logBuilder.AddDebug();
             _ = logBuilder.AddProvider(new FileLoggerProvider("logs/app.log", LogLevel.Trace));
+            logBuilder.SetMinimumLevel(LogLevel.Trace);
         });
         _ = services.AddTransient<MainForm>();
 

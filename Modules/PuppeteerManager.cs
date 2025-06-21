@@ -79,7 +79,7 @@ public class PuppeteerManager : IAsyncDisposable
 
                 var browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    Headless = HeadlessBrowserOptions.Default.Headless,
+                    Headless = false, // HeadlessBrowserOptions.Default.Headless,
                     ExecutablePath = Properties.Settings.Default.PuppeteerExecutablePath,
                     DefaultViewport = null,
                     LogProcess = true,

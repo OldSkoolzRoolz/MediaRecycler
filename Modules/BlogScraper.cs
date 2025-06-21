@@ -7,6 +7,8 @@
 
 
 
+using System.Collections.Concurrent;
+
 using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
 using MediaRecycler.Modules.Options;
@@ -43,6 +45,9 @@ namespace MediaRecycler.Modules
         private readonly IEventAggregator _aggregator;
 
         private readonly HashSet<string> _collectedUrls = [];
+        private readonly ConcurrentDictionary<int,string> _collectedUrlsDictionary = new();
+
+
 
 
         private readonly string startingUrl;
@@ -144,7 +149,7 @@ namespace MediaRecycler.Modules
                     {
                         Program.Logger.LogInformation("Clicking next page....");
 
-                        await AutomationService.ClickElementAsync(ScrapingOptions.Default.PaginationSelector).ConfigureAwait(false);
+                        await AutomationService.ClickElementAsync(ScrapingOptions.Default.PaginationSelector).WithTimeout(60000).ConfigureAwait(false);
                         pageNumber++;
 
                         //  _aggregator.Publish(new PageNumberMessage(pageNumber));
@@ -243,7 +248,6 @@ namespace MediaRecycler.Modules
         /// <remarks>In the event of an abnormal application termination the download queue is saved to file at it's present state.</remarks>
         public async Task DownloadCollectedLinksAsync(HashSet<string>? collectedUrls = null)
         {
-            TaskCompletionSource tcs = new();
             _aggregator.Publish(new StatusBarMessage("Downloader module is starting..."));
             _aggregator.Publish(new StatusMessage("Loading collected links.."));
             string[]? links = null;
@@ -256,27 +260,41 @@ namespace MediaRecycler.Modules
 
                 if (links.Length == 0)
                 {
-
+                    // We have no links to process, so we will exit.
+                    ReportStatus("No links found to process, cannot continue.");
+                    _webAutomationService?.DisposeAsync();
+                    return;
                 }
             }
-            
-            UrlDownloader downloader = new(_aggregator);
+            else if (collectedUrls.Count > 0)
+            {
+                //We were passed links, so we will use those. assign them to the links variable.
+                links = collectedUrls.ToArray();
+            }
 
+            UrlDownloader downloader = new(_aggregator);
             try
             {
                 var AutomationService = new PuppeteerAutomationService(_aggregator);
                 await AutomationService.InitializeAsync();
                 _webAutomationService = AutomationService;
-
-
             }
             catch (Exception ex)
             {
-
                 ReportStatus("Fatal error creating control modules, restart application and try again.");
                 _aggregator.Publish(new StatusBarMessage("Failed to create Automation Manager."));
-                tcs.SetException(ex);
+                if (_webAutomationService != null)
+                {
+                    await _webAutomationService.DisposeAsync();
+                }
+                if (downloader != null)
+                {
+                    await downloader.DisposeAsync();
+                }
+                _aggregator.Publish(new StatusBarMessage($"Error initializing web automation service: {ex.Message}"));
+                return;
             }
+            
 
             // --- Subscribe to Events ---
             downloader.DownloadCompleted += (sender, e) =>

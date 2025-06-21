@@ -248,7 +248,7 @@ public partial class MainForm : Form
                 await _scraper.DisposeAsync();
 
             }
-            AppendToMainViewer(this, "Example finished.");
+            AppendToMainViewer(this, "Blog scraping action has completed...");
         }
 
 

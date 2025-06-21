@@ -197,7 +197,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-
+    private object _queLock = new();
 
 
     /// <summary>
@@ -206,8 +206,26 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// </summary>
     private async Task DownloadWorkerAsync()
     {
-        while (_urlQueue.TryDequeue(out string? url))
+        while (true)
         {
+            string? url = null;
+            // Check if the queue is empty before processing.
+            // If it is, we exit the worker loop.
+            if (_urlQueue.IsEmpty)
+            {
+                Program.Logger.LogDebug("The download queue is empty. Worker exiting.");
+                break;
+            }
+            lock (_queLock)
+            {
+            _urlQueue.TryDequeue(out url);
+            }
+        
+            if(string.IsNullOrWhiteSpace(url))
+            {
+                // If no URL was dequeued, continue to the next iteration.
+                continue;
+            }
             try
             {
                 Program.Logger.LogDebug($"Processing Url {url}...");
@@ -216,6 +234,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             catch (Exception ex)
             {
                 // Catch any unexpected errors during processing a single URL.
+                // swallow the exception and log it. so the worker can continue processing the next URL.
                 OnDownloadFailed(new DownloadFailedEventArgs(url, ex));
             }
         }

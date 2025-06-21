@@ -1,0 +1,36 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="DataSet1" targetNamespace="http://tempuri.org/DataSet1.xsd" xmlns:mstns="http://tempuri.org/DataSet1.xsd" xmlns="http://tempuri.org/DataSet1.xsd" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" xmlns:msprop="urn:schemas-microsoft-com:xml-msprop" attributeFormDefault="qualified" elementFormDefault="qualified">
+  <xs:annotation>
+    <xs:appinfo source="urn:schemas-microsoft-com:xml-msdatasource">
+      <DataSource DefaultConnectionIndex="0" FunctionsComponentName="QueriesTableAdapter" Modifier="AutoLayout, AnsiClass, Class, Public" SchemaSerializationMode="IncludeSchema" xmlns="urn:schemas-microsoft-com:xml-msdatasource">
+        <Connections />
+        <Tables />
+        <Sources />
+      </DataSource>
+    </xs:appinfo>
+  </xs:annotation>
+  <xs:element name="DataSet1" msdata:IsDataSet="true" msdata:UseCurrentLocale="true" msprop:EnableTableAdapterManager="true" msprop:Generator_UserDSName="DataSet1" msprop:Generator_DataSetName="DataSet1">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="CapturedLinks" msprop:Generator_RowEvHandlerName="CapturedLinksRowChangeEventHandler" msprop:Generator_RowDeletedName="CapturedLinksRowDeleted" msprop:Generator_RowDeletingName="CapturedLinksRowDeleting" msprop:Generator_RowEvArgName="CapturedLinksRowChangeEvent" msprop:Generator_TablePropName="CapturedLinks" msprop:Generator_RowChangedName="CapturedLinksRowChanged" msprop:Generator_RowChangingName="CapturedLinksRowChanging" msprop:Generator_TableClassName="CapturedLinksDataTable" msprop:Generator_RowClassName="CapturedLinksRow" msprop:Generator_TableVarName="tableCapturedLinks" msprop:Generator_UserTableName="CapturedLinks">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="id" msdata:AutoIncrement="true" msdata:AutoIncrementSeed="-1" msdata:AutoIncrementStep="-1" msprop:Generator_ColumnPropNameInRow="id" msprop:Generator_ColumnPropNameInTable="idColumn" msprop:Generator_ColumnVarNameInTable="columnid" msprop:Generator_UserColumnName="id" type="xs:int" />
+              <xs:element name="PostId" msprop:Generator_ColumnPropNameInRow="PostId" msprop:Generator_ColumnPropNameInTable="PostIdColumn" msprop:Generator_ColumnVarNameInTable="columnPostId" msprop:Generator_UserColumnName="PostId" type="xs:int" />
+              <xs:element name="Link" msprop:Generator_ColumnPropNameInRow="Link" msprop:Generator_ColumnPropNameInTable="LinkColumn" msprop:Generator_ColumnVarNameInTable="columnLink" msprop:Generator_UserColumnName="Link" type="xs:string" />
+              <xs:element name="Downloaded" msprop:Generator_ColumnPropNameInRow="Downloaded" msprop:Generator_ColumnPropNameInTable="DownloadedColumn" msprop:Generator_ColumnVarNameInTable="columnDownloaded" msprop:Generator_UserColumnName="Downloaded" type="xs:boolean" default="false" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+    <xs:unique name="DataTable1Key1" msdata:PrimaryKey="true">
+      <xs:selector xpath=".//mstns:CapturedLinks" />
+      <xs:field xpath="mstns:id" />
+    </xs:unique>
+    <xs:unique name="Constraint1">
+      <xs:selector xpath=".//mstns:CapturedLinks" />
+      <xs:field xpath="mstns:PostId" />
+    </xs:unique>
+  </xs:element>
+</xs:schema>
