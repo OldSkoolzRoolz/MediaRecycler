@@ -5,5 +5,14 @@
     <Setting Name="PuppeteerExecutablePath" Type="System.String" Scope="User">
       <Value Profile="(Default)">c:\users\kcrow\documents\Chrome\\Win64-132.0.6834.83\\chrome-win64\\chrome.exe</Value>
     </Setting>
+    <Setting Name="ConnString" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Data Source=(LocalDB)\MSSQLLocalDB; AttachDbFilename=C:\Users\kcrow\Documents\Data\Solutions\MediaRecycler\MediaRecycler\Model\\Database1.mdf</Value>
+    </Setting>
+    <Setting Name="LastWSEndPoint" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="Setting" Type="System.String" Scope="User">
+      <Value Profile="(Default)">'Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=d:\Database1.mdf;Integrated Security=True;Connect Timeout=30'</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

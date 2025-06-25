@@ -23,6 +23,6 @@ public interface IBlogScraper : IScraper
     /// </summary>
     /// <param name="collectedUrls"></param>
     /// <returns></returns>
-    Task DownloadCollectedLinksAsync(HashSet<string>? collectedUrls = null);
+    Task DownloadCollectedLinksAsync();
 
 }

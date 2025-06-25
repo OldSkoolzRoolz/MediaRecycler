@@ -197,7 +197,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-    private object _queLock = new();
+    private readonly object _queLock = new();
 
 
     /// <summary>
@@ -218,10 +218,10 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             }
             lock (_queLock)
             {
-            _urlQueue.TryDequeue(out url);
+                _ = _urlQueue.TryDequeue(out url);
             }
-        
-            if(string.IsNullOrWhiteSpace(url))
+
+            if (string.IsNullOrWhiteSpace(url))
             {
                 // If no URL was dequeued, continue to the next iteration.
                 continue;

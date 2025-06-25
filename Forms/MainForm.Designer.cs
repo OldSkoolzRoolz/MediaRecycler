@@ -7,6 +7,9 @@
 
  namespace MediaRecycler
 {
+    /// <summary>
+    /// 
+    /// </summary>
     partial class MainForm
     {
         /// <summary>

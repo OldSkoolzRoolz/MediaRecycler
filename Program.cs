@@ -50,7 +50,7 @@ internal static class Program
             _ = logBuilder.AddConsole();
             _ = logBuilder.AddDebug();
             _ = logBuilder.AddProvider(new FileLoggerProvider("logs/app.log", LogLevel.Trace));
-            logBuilder.SetMinimumLevel(LogLevel.Trace);
+            _ = logBuilder.SetMinimumLevel(LogLevel.Trace);
         });
         _ = services.AddTransient<MainForm>();
 
@@ -61,10 +61,6 @@ internal static class Program
                  return new ControlLoggerProvider(resolvedMainForm.MainLogRichTextBox, LogLevel.Trace));
              });
         */
-
-
-        Properties.Settings.Default.MyDocumentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-        Properties.Settings.Default.Save();
 
 
 

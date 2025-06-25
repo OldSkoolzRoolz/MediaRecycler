@@ -15,8 +15,6 @@ using System.ComponentModel;
 
 using MediaRecycler.Modules.Options;
 
-using Microsoft.Extensions.Logging;
-
 
 
 namespace MediaRecycler;
@@ -100,7 +98,7 @@ public partial class DownloaderSettingsForm : Form
         catch (Exception exception)
         {
             _ = MessageBox.Show("Error saving settings to file.");
-            Program.Logger.LogError(exception, "Error saving settings.");
+            //Program.Logger.LogError(exception, "Error saving settings.");
             settings.ReloadSettings();
         }
     }

@@ -335,7 +335,7 @@ public class PuppeteerManager : IAsyncDisposable
     /// </exception>
     private async Task<IBrowser?> AttemptToConnectAsync()
     {
-        string? lastWsEndpoint = Properties.Settings.Default.LastUsedWSEndpoint;
+        string? lastWsEndpoint = Properties.Settings.Default.LastWSEndPoint;
 
         if (string.IsNullOrEmpty(lastWsEndpoint))
         {
@@ -355,7 +355,7 @@ public class PuppeteerManager : IAsyncDisposable
             NotifyRecovery("Failed to connect to browser.");
 
             //clear the last used endpoint if connection fails
-            Properties.Settings.Default.LastUsedWSEndpoint = null;
+            Properties.Settings.Default.LastWSEndPoint = null;
             Properties.Settings.Default.Save();
             return null;
         }

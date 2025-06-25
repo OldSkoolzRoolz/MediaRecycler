@@ -27,7 +27,7 @@ namespace MediaRecycler.Modules;
 ///     It encapsulates common puppeteersharp methods low-level browser interactions and includes
 ///     error handling and retry logic for individual actions.
 /// </summary>
-public class PuppeteerAutomationService :  IAsyncDisposable, IWebAutomationService
+public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationService
 {
 
     private readonly IEventAggregator? _aggregator;
@@ -91,13 +91,13 @@ public class PuppeteerAutomationService :  IAsyncDisposable, IWebAutomationServi
         {
             _aggregator?.Publish(new StatusMessage($"Clicking element with selector '{paginationSelector}'..."));
             Program.Logger.LogDebug($"Clicking element with selector '{paginationSelector}'...");
-  
-            
+
+
             await _puppeteerManager.Page.ClickAsync(paginationSelector).WithTimeout(60000).ConfigureAwait(false);
 
-            _ = await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle2 },Timeout=DefaultTimeout })
+            _ = await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle2 }, Timeout = DefaultTimeout })
                         .WithTimeout(DefaultTimeout).ConfigureAwait(false);
-            
+
             await Task.Delay(5000); // Forced delay to ensure the page has fully loaded after navigation
 
         }

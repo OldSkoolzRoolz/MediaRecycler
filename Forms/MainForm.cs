@@ -7,6 +7,7 @@
 
 
 
+using MediaRecycler.Model;
 using MediaRecycler.Modules;
 using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
@@ -23,8 +24,8 @@ public partial class MainForm : Form
 {
 
     private readonly IEventAggregator _aggregator = new EventAggregator();
-    private UrlDownloader _downloadManager;
-    private IScraper _scraper;
+    private UrlDownloader? _downloadManager;
+    private IScraper? _scraper;
 
 
 
@@ -32,24 +33,7 @@ public partial class MainForm : Form
 
 
 
-    /// <summary>
-    ///     Initializes a new instance of the <see cref="MainForm" /> class.
-    /// </summary>
-    /// <param name="scraperSettingsMonitor">
-    ///     The settings monitor for scraper configuration, providing dynamic updates to scraper-related options.
-    /// </param>
-    /// <param name="miniOptionsMonitor">
-    ///     The settings monitor for MiniFrontier configuration, enabling dynamic updates to frontier-related options.
-    /// </param>
-    /// <param name="launcherSettingsMonitor">
-    ///     The settings monitor for headless browser configuration, allowing dynamic updates to browser-related options.
-    /// </param>
-    /// <param name="downloaderSettingsMonitor">
-    ///     The settings monitor for downloader configuration, enabling dynamic updates to downloader-related options.
-    /// </param>
-    /// <param name="logger">
-    ///     The logger instance for logging messages and errors related to the <see cref="MainForm" />.
-    /// </param>
+    /// <inheritdoc />
     public MainForm()
     {
         InitializeComponent();
@@ -75,6 +59,9 @@ public partial class MainForm : Form
 
 
 #pragma warning disable IDE0032
+    /// <summary>
+    /// Text box used for logging output in the main viewer.
+    /// </summary>
     public RichTextBox MainLogRichTextBox => rtb_main;
 #pragma warning restore IDE0032
 
@@ -83,7 +70,11 @@ public partial class MainForm : Form
 
 
 
-
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="sender"></param>
+    /// <param name="text"></param>
     private void AppendToMainViewer(object? sender, string text)
     {
         if (InvokeRequired)
@@ -180,7 +171,7 @@ public partial class MainForm : Form
             _aggregator.Publish(new StatusMessage("Queuing videos..."));
 
 
-            IBlogScraper scraper = new BlogScraper(_aggregator);
+            IBlogScraper? scraper = new BlogScraper(_aggregator);
             _scraper = scraper;
 
             if (_scraper is IBlogScraper bscraper)
@@ -194,8 +185,12 @@ public partial class MainForm : Form
             Program.Logger.LogError(ex, "An unhandled error occured. Attempting to save progress before aborting...");
             SetStatusLabelText(this, ex.Message);
 
-            await _scraper.CancelAsync();
-            await _scraper.DisposeAsync();
+            if (_scraper != null)
+            {
+                await _scraper.CancelAsync();
+                await _scraper.DisposeAsync();
+            }
+
         }
         finally
         {
@@ -211,7 +206,15 @@ public partial class MainForm : Form
 
 
 
-
+    /// <summary>
+    ///     Handles the click event of the scrape button, initiating the blog scraping process.
+    /// </summary>
+    ///     <param name="sender">The object that triggered the event.</param>
+    ///     <param name="e">The event arguments.</param>
+    ///     <remarks>
+    ///         This method creates an instance of the blog scraper, starts the scraping process, and handles any exceptions that may occur.
+    ///         It also ensures that the scraper is properly disposed of after the process is complete.
+    ///     </remarks>
     private async void btn_Scrape_Click(object sender, EventArgs e)
     {
         btn_GetVidPages.Enabled = false;
@@ -223,7 +226,7 @@ public partial class MainForm : Form
             // 1. Create the automation service, injecting the page from our manager.
 
             // 2. Create the scraper, injecting the automation service.
-            IBlogScraper bScraper = new BlogScraper(_aggregator);
+            IBlogScraper? bScraper = new BlogScraper(_aggregator);
             _scraper = bScraper; // Store the scraper instance in parent interface variable so it can be accessed by the form or other methods without knowing the specific type that has been created.
 
             // This is useful for polymorphism and allows us to call methods on the interface without needing to know the concrete implementation.
@@ -432,8 +435,6 @@ public partial class MainForm : Form
         if (InvokeRequired)
         {
             _ = BeginInvoke(() => OnStatusBarMessageReceivced(message));
-            return;
-
             tsl_status.Text = message.Text;
         }
     }
@@ -470,7 +471,11 @@ public partial class MainForm : Form
 
 
 
-
+    /// <summary>
+    /// Sets the text of the status label.
+    /// </summary>
+    /// <param name="sender">The object that triggered this method call.</param>
+    /// <param name="text">The text to be displayed in the status label.</param>
     public void SetStatusLabelText(object? sender, string text)
     {
         if (statusStrip1.InvokeRequired) // Use the parent control's InvokeRequired property
@@ -503,11 +508,11 @@ public partial class MainForm : Form
                 case nameof(btn_QueVideos):
                     button.Enabled = isEnabled;
 
-                    await _scraper.CancelAsync();
+                    if (_scraper != null) await _scraper.CancelAsync();
                     break;
                 case nameof(btn_download):
                     button.Enabled = isEnabled;
-                    await _downloadManager.StopAllTasksAsync();
+                    if (_downloadManager != null) await _downloadManager.StopAllTasksAsync();
                     break;
                 case nameof(btn_GetVidPages):
                     button.Enabled = isEnabled;
@@ -516,29 +521,103 @@ public partial class MainForm : Form
         }
     }
 
-    private async void btn_Testing_Click(object sender, EventArgs e)
+
+
+    private void btn_Testing_Click(object sender, EventArgs e)
     {
         btn_Testing.Enabled = false;
         //btn_Testing.Visible = false;
 
-        _aggregator.Publish(new StatusMessage("Testing button clicked;"));
-        try
-        {
-            Program.Logger?.LogInformation("Testing button clicked.");
-            await Task.Delay(3000); // Simulate some work
-            AppendToMainViewer(this, "Testing complete.");
-        }
-        catch (Exception ex)
-        {
-            Program.Logger?.LogError(ex, "Error during testing.");
-            AppendToMainViewer(this, $"Error during testing: {ex.Message}");
-        }
-        finally
-        {
-            btn_Testing.Enabled = true;
-            //    btn_Testing.Visible = true;
-        }
+
+
+
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    private void GetCollectedLinksFromFiles()
+    {
+        //string directory = AppDomain.CurrentDomain.BaseDirectory;
+        //string[] txtFiles = Directory.GetFiles(directory, "*.txt", SearchOption.TopDirectoryOnly);
+        var allLines = new List<string>();
+
+        var lnks = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CollectedUrls.txt"));
+
+
+
+        using var db = new MRContext();
+
+
+        foreach (string url in lnks)
+        {
+        var d = db.PostPages.ToList();
+        tb_pages.Text = d.Count.ToString();
+
+            try
+            {
+                var id = url.Split("/").Last();
+                try
+                {
+                    if (!DataLayer.InsertPostPageUrlToDb(id, url))
+                    {
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _aggregator?.Publish(new StatusMessage($"Error reading file '{url}': {ex.Message}"));
+                    continue;
+                }
+
+            }
+            catch (Exception)
+            {
+                continue;
+            }
+                tb_pages.Text = lnks.Length.ToString();
+        }
+
+     
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -34,9 +34,43 @@ namespace MediaRecycler.Properties {
                 this["PuppeteerExecutablePath"] = value;
             }
         }
-
-        public string? LastUsedWSEndpoint { get; set; }
-        public string MyDocumentsPath { get; set; }
-
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Data Source=(LocalDB)\\MSSQLLocalDB; AttachDbFilename=C:\\Users\\kcrow\\Documents\\Dat" +
+            "a\\Solutions\\MediaRecycler\\MediaRecycler\\Model\\\\Database1.mdf")]
+        public string ConnString {
+            get {
+                return ((string)(this["ConnString"]));
+            }
+            set {
+                this["ConnString"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LastWSEndPoint {
+            get {
+                return ((string)(this["LastWSEndPoint"]));
+            }
+            set {
+                this["LastWSEndPoint"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("\'Data Source=(LocalDB)\\MSSQLLocalDB;AttachDbFilename=d:\\Database1.mdf;Integrated " +
+            "Security=True;Connect Timeout=30\'")]
+        public string Setting {
+            get {
+                return ((string)(this["Setting"]));
+            }
+            set {
+                this["Setting"] = value;
+            }
+        }
     }
 }
