@@ -13,6 +13,7 @@ using MediaRecycler.Modules.Options;
 using Microsoft.Extensions.Logging;
 
 using PuppeteerSharp;
+using PuppeteerSharp.BrowserData;
 
 
 
@@ -27,7 +28,7 @@ public class PuppeteerManager : IAsyncDisposable
 {
 
     private readonly IEventAggregator _aggregator;
-    private bool _disposed;
+    private bool _disposed = false;
 
 
 
@@ -51,7 +52,7 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
-    //public IBrowser? Browser { get; private set; }
+
 
 
 
@@ -61,16 +62,37 @@ public class PuppeteerManager : IAsyncDisposable
 
     public async Task InitAsync()
     {
+
+        /*
+         await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
+          if (Browser is null) throw new ArgumentNullException(nameof(Browser),"Browser failed to initialize.");
+          await CreateContextTaskAsync();
+          if (PuppeteerSharp.Browser.Context is null) throw new ArgumentNullException(nameof(Context),"Browser context failed to initialize.");
+          await CreatePageTaskAsync();
+          if (Page is null) throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
+          */
+        //   Browser = await AttemptToConnectAsync();
+        var fo = new BrowserFetcherOptions
+        {
+            Path = Path.GetFullPath(nameof(Environment.SpecialFolder.ApplicationData))
+        };
+        var fetch = new PuppeteerSharp.BrowserFetcher();
+
+        Task<InstalledBrowser> t = fetch.DownloadAsync();
         try
         {
-            /*  await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
-              if (Browser is null) throw new ArgumentNullException(nameof(Browser),"Browser failed to initialize.");
-              await CreateContextTaskAsync();
-              if (Context is null) throw new ArgumentNullException(nameof(Context),"Browser context failed to initialize.");
-              await CreatePageTaskAsync();
-              if (Page is null) throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
-              */
-            //   Browser = await AttemptToConnectAsync();
+
+            await t;
+        }
+        catch (Exception e)
+        {
+            _aggregator.Publish(new StatusBarMessage($"Failed to download browser: {e.Message}"));
+            Program.Logger.LogError(e, "Failed to download browser.");
+        }
+
+
+        try
+        {
 
             if (Browser is null)
             {
@@ -79,16 +101,22 @@ public class PuppeteerManager : IAsyncDisposable
 
                 var browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    Headless = false, // HeadlessBrowserOptions.Default.Headless,
-                    ExecutablePath = Properties.Settings.Default.PuppeteerExecutablePath,
+                    Headless = HeadlessBrowserOptions.Default.Headless,
+                    ExecutablePath = t.Result.GetExecutablePath(),
                     DefaultViewport = null,
                     LogProcess = true,
                     Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
+                    UserDataDir = HeadlessBrowserOptions.Default.UserDataDir
+
+
+
 
                 });
 
                 var pages = await browser.PagesAsync();
                 Page = pages.Length > 0 ? pages.First() : await browser.NewPageAsync();
+
+
 
                 Browser = browser;
                 // await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
@@ -175,6 +203,7 @@ public class PuppeteerManager : IAsyncDisposable
 
         // Dispose of any resources if necessary
         DisposeAsync().AsTask().Wait();
+        throw new BrowserAbortedException("The browser instance has been closed.");
     }
 
 
@@ -192,6 +221,7 @@ public class PuppeteerManager : IAsyncDisposable
         NotifyRecovery($"Target destroyed: {e.Target.Url}");
 
         DisposeAsync().AsTask().Wait();
+        throw new BrowserAbortedException("The browser instance has been closed.");
     }
 
 
@@ -209,6 +239,7 @@ public class PuppeteerManager : IAsyncDisposable
 
         // Attempt to clean up resources
         DisposeAsync().AsTask().Wait();
+        throw new BrowserAbortedException("The browser instance has been disconnected.");
     }
 
 
@@ -382,4 +413,13 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
+}
+
+
+
+
+
+
+internal class BrowserAbortedException(string message) : Exception(message)
+{
 }

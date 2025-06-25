@@ -92,19 +92,18 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
             _aggregator?.Publish(new StatusMessage($"Clicking element with selector '{paginationSelector}'..."));
             Program.Logger.LogDebug($"Clicking element with selector '{paginationSelector}'...");
 
+            var pageHandle = await _puppeteerManager.Page.QuerySelectorAsync(paginationSelector);
 
-            await _puppeteerManager.Page.ClickAsync(paginationSelector).WithTimeout(60000).ConfigureAwait(false);
+            if (pageHandle != null)
+            {
+                await pageHandle.ClickAsync();
 
-            _ = await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = new[] { WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle2 }, Timeout = DefaultTimeout })
-                        .WithTimeout(DefaultTimeout).ConfigureAwait(false);
-
-            await Task.Delay(5000); // Forced delay to ensure the page has fully loaded after navigation
-
+            }
         }
         catch (Exception ex)
         {
             _aggregator?.Publish(new StatusMessage($"Error clicking element '{paginationSelector}': {ex.Message}"));
-            throw;
+
         }
     }
 
@@ -119,8 +118,7 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
     /// </summary>
     public async Task DoSiteLoginAsync()
     {
-        _ = await _puppeteerManager.Page.GoToAsync("https://www.bdsmlr.com/login").ConfigureAwait(false);
-        await Task.Delay(5000);
+        _ = await _puppeteerManager.Page.GoToAsync("https://www.bdsmlr.com/login", DefaultTimeout, [WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle0]);
 
         try
         {
@@ -145,7 +143,8 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
             await element2Handle.TypeAsync(password).ConfigureAwait(false);
 
             await _puppeteerManager.Page.ClickAsync("button[type=submit]").ConfigureAwait(false);
-            await Task.Delay(5000).ConfigureAwait(false);
+            //  await _puppeteerManager.Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = [ WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle0 ]});
+
             _aggregator?.Publish(new StatusMessage("Login to site was successful"));
         }
         catch (Exception e)
@@ -212,6 +211,18 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
         finally
         {
             await _puppeteerManager.DisposeAsync();
+        }
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public IPage? Page
+    {
+        get
+        {
+            if (_puppeteerManager.Page == null) return null; return _puppeteerManager.Page;
         }
     }
 
@@ -305,7 +316,16 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
 
 
 
-
+    /// <summary>
+    ///     Asynchronously navigates to the specified URL using the Puppeteer page instance.
+    /// </summary>
+    ///     <param name="url">The URL to navigate to.</param>
+    ///     <returns>A task representing the asynchronous operation.</returns>
+    ///     <remarks>
+    ///         Publishes status messages for navigation start, success, and failure.
+    ///         Logs information messages for navigation start and result.
+    ///         Handles exceptions and publishes error messages.
+    ///     </remarks>
     public async Task GoToAsync(string url)
     {
         try
@@ -313,15 +333,14 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
             _aggregator?.Publish(new StatusMessage($"Navigating to {url}..."));
             Program.Logger.LogInformation($"Navigating to page {url}...");
 
-            var response = await _puppeteerManager.Page.GoToAsync(url, WaitUntilNavigation.DOMContentLoaded).WithTimeout(DefaultTimeout).ConfigureAwait(false);
+            var response = await _puppeteerManager.Page.GoToAsync(url, DefaultTimeout, [WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle0]).ConfigureAwait(false);
 
-            if (response.Ok)
+            if (!response.Ok)
             {
-                _aggregator?.Publish(new StatusMessage("Navigation successful."));
-                return;
+                _aggregator?.Publish(new StatusMessage($"Navigation failed with status: {response.Status}"));
             }
+            _aggregator?.Publish(new StatusMessage("Navigation successful."));
 
-            _aggregator?.Publish(new StatusMessage($"Navigation failed with status: {response.Status}"));
         }
         catch (Exception ex)
         {

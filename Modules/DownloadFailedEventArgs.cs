@@ -15,6 +15,7 @@ namespace MediaRecycler.Modules;
 /// </summary>
 public class DownloadFailedEventArgs(
             string url,
+            string postId,
             Exception exception) : EventArgs
 {
 
@@ -29,5 +30,11 @@ public class DownloadFailedEventArgs(
     ///     The exception that caused the download to fail.
     /// </summary>
     public Exception Exception { get; } = exception;
+
+    /// <summary>
+    /// Unique post id that file was found on.
+    /// <remarks>Used for dupe tracking</remarks>
+    /// </summary>
+    public string PostId { get; } = postId;
 
 }

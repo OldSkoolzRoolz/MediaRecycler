@@ -7,7 +7,6 @@
 
 
 
-using MediaRecycler.Model;
 using MediaRecycler.Modules;
 using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
@@ -105,8 +104,11 @@ public partial class MainForm : Form
     /// </remarks>
     /// <param name="sender">The source of the event, typically the download button.</param>
     /// <param name="e">An <see cref="EventArgs" /> object containing event data.</param>
-    private async void btn_download_Click(object sender, EventArgs e)
+    private async void btn_queue_Click(object sender, EventArgs e)
     {
+
+
+
         _downloadManager = new UrlDownloader(_aggregator);
 
         // --- Subscribe to Events ---
@@ -144,7 +146,6 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            await _downloadManager.SaveQueueAsync();
             Program.Logger?.LogError(ex, "Error running download process.");
             AppendToMainViewer(this, $"Error running download: {ex.Message}");
             SetStatusLabelText(this, "Download failed.");
@@ -163,9 +164,35 @@ public partial class MainForm : Form
 
 
 
-    private async void btn_QueueVids_Click(object sender, EventArgs e)
+    private async void btn_Process_Click(object sender, EventArgs e)
     {
-        btn_QueVideos.Enabled = false;
+
+
+        IBlogScraper? scraper = new BlogScraper(_aggregator);
+        _scraper = scraper;
+
+        if (_scraper is IBlogScraper bscraper)
+        {
+            try
+            {
+                await bscraper.ExtractTargetLinksAsync();
+            }
+            catch (Exception)
+            {
+
+
+            }
+        }
+
+    }
+
+
+
+
+
+    private async void btn_download_Click(object sender, EventArgs e)
+    {
+        btn_Process.Enabled = false;
         try
         {
             _aggregator.Publish(new StatusMessage("Queuing videos..."));
@@ -198,7 +225,7 @@ public partial class MainForm : Form
             SetStatusLabelText(null, "Video Queue finished.");
         }
 
-        btn_QueVideos.Enabled = true;
+        btn_Process.Enabled = true;
     }
 
 
@@ -505,7 +532,7 @@ public partial class MainForm : Form
         {
             switch (button.Name)
             {
-                case nameof(btn_QueVideos):
+                case nameof(btn_Process):
                     button.Enabled = isEnabled;
 
                     if (_scraper != null) await _scraper.CancelAsync();
@@ -548,51 +575,6 @@ public partial class MainForm : Form
 
 
 
-
-    private void GetCollectedLinksFromFiles()
-    {
-        //string directory = AppDomain.CurrentDomain.BaseDirectory;
-        //string[] txtFiles = Directory.GetFiles(directory, "*.txt", SearchOption.TopDirectoryOnly);
-        var allLines = new List<string>();
-
-        var lnks = File.ReadAllLines(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "CollectedUrls.txt"));
-
-
-
-        using var db = new MRContext();
-
-
-        foreach (string url in lnks)
-        {
-        var d = db.PostPages.ToList();
-        tb_pages.Text = d.Count.ToString();
-
-            try
-            {
-                var id = url.Split("/").Last();
-                try
-                {
-                    if (!DataLayer.InsertPostPageUrlToDb(id, url))
-                    {
-
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _aggregator?.Publish(new StatusMessage($"Error reading file '{url}': {ex.Message}"));
-                    continue;
-                }
-
-            }
-            catch (Exception)
-            {
-                continue;
-            }
-                tb_pages.Text = lnks.Length.ToString();
-        }
-
-     
-    }
 
 
 

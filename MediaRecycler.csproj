@@ -65,6 +65,7 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Polly" />
     <PackageReference Include="PuppeteerSharp" />
+    <PackageReference Include="puppeteersharp.dom" />
   </ItemGroup>
   <ItemGroup>
     <Compile Update="Model\DataSet1.Designer.cs">

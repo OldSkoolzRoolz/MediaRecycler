@@ -15,6 +15,7 @@ namespace MediaRecycler.Modules;
 /// </summary>
 public class DownloadCompletedEventArgs(
             string url,
+            string postId,
             string filePath,
             long fileSizeBytes) : EventArgs
 {
@@ -35,5 +36,10 @@ public class DownloadCompletedEventArgs(
     ///     The size of the downloaded file in bytes.
     /// </summary>
     public long FileSizeBytes { get; } = fileSizeBytes;
+
+    /// <summary>
+    /// Unique post id of the file
+    /// </summary>
+    public string PostId { get; } = postId;
 
 }

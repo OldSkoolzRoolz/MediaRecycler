@@ -1,4 +1,10 @@
-﻿namespace MediaRecycler;
+﻿// Project Name: ${File.ProjectName}
+// Author:  Kyle Crowder 
+// Github:  OldSkoolzRoolz
+// Distributed under Open Source License 
+// Do not remove file headers
+
+namespace MediaRecycler;
 
 public partial class TargetLink
 {
@@ -21,9 +27,9 @@ public partial class TargetLink
 
     public int Id { get; set; }
 
-    public string PostId { get; set; } 
+    public string PostId { get; set; }
 
-    public string Link { get; set; } 
+    public string Link { get; set; }
 
     public bool IsDownloaded { get; set; }
 }

@@ -23,6 +23,7 @@
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0-preview.5.25277.114" />
     <PackageVersion Include="Polly" Version="8.6.1" />
     <PackageVersion Include="PuppeteerSharp" Version="20.1.3" />
+    <PackageVersion Include="puppeteersharp.dom" Version="5.0.43" />
     <PackageVersion Include="System.Text.Json" Version="10.0.0-preview.5.25277.114" />
   </ItemGroup>
 </Project>

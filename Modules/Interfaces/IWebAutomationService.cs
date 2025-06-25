@@ -30,8 +30,6 @@ public interface IWebAutomationService
 
 
 
-
-
     /// <summary>
     ///     Attempts to log in to the current site asynchronously.
     /// </summary>

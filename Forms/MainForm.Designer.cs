@@ -43,7 +43,7 @@
             tsl_status = new ToolStripStatusLabel();
             notifyIcon1 = new NotifyIcon(components);
             btn_GetVidPages = new Button();
-            btn_QueVideos = new Button();
+            btn_Process = new Button();
             btn_download = new Button();
             menuStrip1 = new MenuStrip();
             settingsToolStripMenuItem = new ToolStripMenuItem();
@@ -119,18 +119,18 @@
             btn_GetVidPages.UseVisualStyleBackColor = true;
             btn_GetVidPages.Click += btn_Scrape_Click;
             // 
-            // btn_QueVideos
+            // btn_Process
             // 
-            btn_QueVideos.FlatStyle = FlatStyle.System;
-            btn_QueVideos.Font = new Font("Segoe UI", 12F);
-            btn_QueVideos.Location = new Point(328, 612);
-            btn_QueVideos.Name = "btn_QueVideos";
-            btn_QueVideos.Size = new Size(100, 30);
-            btn_QueVideos.TabIndex = 2;
-            btn_QueVideos.Text = "Que Vids";
-            tip.SetToolTip(btn_QueVideos, "Get links from collected urls and download vids");
-            btn_QueVideos.UseVisualStyleBackColor = true;
-            btn_QueVideos.Click += btn_QueueVids_Click;
+            btn_Process.FlatStyle = FlatStyle.System;
+            btn_Process.Font = new Font("Segoe UI", 12F);
+            btn_Process.Location = new Point(328, 612);
+            btn_Process.Name = "btn_Process";
+            btn_Process.Size = new Size(100, 30);
+            btn_Process.TabIndex = 2;
+            btn_Process.Text = "Process";
+            tip.SetToolTip(btn_Process, "Get links from collected urls and download vids");
+            btn_Process.UseVisualStyleBackColor = true;
+            btn_Process.Click += btn_Process_Click;
             // 
             // btn_download
             // 
@@ -140,7 +140,7 @@
             btn_download.Name = "btn_download";
             btn_download.Size = new Size(100, 30);
             btn_download.TabIndex = 3;
-            btn_download.Text = "Load N Go";
+            btn_download.Text = "Download";
             tip.SetToolTip(btn_download, "Download the videos found on the page.");
             btn_download.UseVisualStyleBackColor = true;
             btn_download.Click += btn_download_Click;
@@ -378,7 +378,7 @@
             Controls.Add(tableLayoutPanel1);
             Controls.Add(rtb_main);
             Controls.Add(btn_download);
-            Controls.Add(btn_QueVideos);
+            Controls.Add(btn_Process);
             Controls.Add(btn_GetVidPages);
             Controls.Add(statusStrip1);
             Controls.Add(menuStrip1);
@@ -404,7 +404,7 @@
         private ToolStripStatusLabel tsl_status;
         private NotifyIcon notifyIcon1;
         private Button btn_GetVidPages;
-        private Button btn_QueVideos;
+        private Button btn_Process;
         private Button btn_download;
         private MenuStrip menuStrip1;
         private ToolStripMenuItem settingsToolStripMenuItem;

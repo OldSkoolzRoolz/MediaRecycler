@@ -16,6 +16,8 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 
+using MediaRecycler.Model;
+using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
 using MediaRecycler.Modules.Options;
 
@@ -54,8 +56,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <summary>
     ///     Initializes a new instance of the UrlDownloader.
     /// </summary>
-    /// <param name="maxConcurrency">The maximum number of concurrent downloads. Must be greater than 0.</param>
-    /// <param name="downloadDirectory">The directory where files will be saved. It will be created if it doesn't exist.</param>
+    /// <param name="aggregator">The maximum number of concurrent downloads. Must be greater than 0.</param>
     public UrlDownloader(IEventAggregator aggregator)
     {
 
@@ -141,7 +142,6 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        await SaveQueueAsync();
 
         if (_httpClient is IAsyncDisposable httpClientAsyncDisposable)
         {
@@ -206,6 +206,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// </summary>
     private async Task DownloadWorkerAsync()
     {
+        string? postid = null;
         while (true)
         {
             string? url = null;
@@ -228,6 +229,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             }
             try
             {
+                postid = Path.GetFileNameWithoutExtension(url).Split("-")[1];
                 Program.Logger.LogDebug($"Processing Url {url}...");
                 await ProcessUrlAsync(url);
             }
@@ -235,7 +237,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             {
                 // Catch any unexpected errors during processing a single URL.
                 // swallow the exception and log it. so the worker can continue processing the next URL.
-                OnDownloadFailed(new DownloadFailedEventArgs(url, ex));
+                OnDownloadFailed(new DownloadFailedEventArgs(url, postid!, ex));
             }
         }
     }
@@ -307,10 +309,16 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-    protected virtual void OnDownloadCompleted(DownloadCompletedEventArgs e)
+    protected virtual async Task OnDownloadCompleted(DownloadCompletedEventArgs e)
     {
-        Program.Logger.LogDebug($"Download complete: {e.FilePath}");
+        Program.Logger.LogDebug($"Download complete: {e?.FilePath}");
         _aggregator.Publish(new QueueCountMessage(QueueCount));
+
+
+
+        await DataLayer.UpdateTargetDownloaded(e.PostId);
+
+        //publish event to subscribers
         DownloadCompleted?.Invoke(this, e);
 
     }
@@ -323,6 +331,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
     protected virtual void OnDownloadFailed(DownloadFailedEventArgs e)
     {
+        Program.Logger.LogError(e.Exception, $"Download failed: {e.Url}");
         DownloadFailed?.Invoke(this, e);
     }
 
@@ -350,47 +359,73 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <param name="url">The URL to process.</param>
     private async Task ProcessUrlAsync(string url)
     {
-        string fileName = Path.GetFileName(new Uri(url).AbsolutePath);
-        string destinationPath = Path.Combine(_downloadDirectory, fileName);
-
-        // The context allows passing data to the Polly policy, like the URL for logging.
-        var context = new Context { ["url"] = url };
-
-        // Execute the download using the retry policy.
-        var response = await _retryPolicy.ExecuteAsync(ctx => _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None), context);
-
-        // Ensure we have a successful response after retries.
-        _ = response.EnsureSuccessStatusCode();
-
-        // Get the expected content length from headers.
-        long? expectedLength = response.Content.Headers.ContentLength;
-
-        if (!expectedLength.HasValue)
+        var uri = new Uri(url);
+        string fileName = Path.GetFileName(uri.AbsolutePath);
+        string postid = Path.GetFileNameWithoutExtension(fileName).Split("-")[1];
+        string destinationPath = Path.Combine(DownloaderOptions.Default.DownloadPath, $"{postid}.mp4");
+        const int buffer = 81920;
+        try
         {
-            throw new InvalidOperationException($"Could not determine the file size for '{url}'. Content-Length header is missing.");
+            if (File.Exists(destinationPath)) return;
+
+            var context = new Context { ["url"] = url };
+
+            // var response = await _retryPolicy.ExecuteAsync(ctx => _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None), context);
+            var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, CancellationToken.None);
+            response.EnsureSuccessStatusCode();
+
+            long? expectedLength = response.Content.Headers.ContentLength;
+            if (!expectedLength.HasValue)
+            {
+                throw new InvalidOperationException($"Missing Content-Length header for '{url}'.");
+            }
+
+            await using (var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer, true))
+            await using (var contentStream = await response.Content.ReadAsStreamAsync())
+            {
+                await contentStream.CopyToAsync(fileStream, buffer);
+
+            }
+
+            // Verify file length AFTER the stream has been fully copied and closed.
+            // This ensures the file is not locked when checking its size.
+            long actualLength = new FileInfo(destinationPath).Length;
+
+            if (actualLength == expectedLength.Value)
+            {
+                OnDownloadCompleted(new DownloadCompletedEventArgs(url, postid, destinationPath, actualLength));
+            }
+            else
+            {
+                // If verification fails, delete the corrupted file.
+                // This also helps clean up partially downloaded files that might cause issues later.
+                try
+                {
+                    File.Delete(destinationPath);
+                    Program.Logger.LogWarning($"Deleted corrupted file {destinationPath} due to size mismatch.");
+                }
+                catch (IOException ex)
+                {
+                    Program.Logger.LogError(ex, $"Failed to delete corrupted file {destinationPath}. Manual intervention may be required.");
+                }
+                throw new IOException($"Download verification failed for '{url}'. Expected {expectedLength.Value} bytes but received {actualLength} bytes.");
+            }
+
         }
-
-        // Download the file content.
-        using (var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true))
+        catch (Exception)
         {
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            await contentStream.CopyToAsync(fileStream);
-        }
 
-        // Verify that the downloaded file size matches the expected size.
-        long actualLength = new FileInfo(destinationPath).Length;
-
-        if (actualLength == expectedLength.Value)
-        {
-            OnDownloadCompleted(new DownloadCompletedEventArgs(url, destinationPath, actualLength));
-        }
-        else
-        {
-            // If sizes don't match, clean up the partial file and raise a failure event.
             File.Delete(destinationPath);
-            throw new IOException($"Download verification failed for '{url}'. Expected {expectedLength.Value} bytes but received {actualLength} bytes.");
+
         }
     }
+
+
+
+
+
+
+
 
 
 
@@ -455,49 +490,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-    /// <summary>
-    ///     Saves the current URL queue to a persistent storage file.
-    /// </summary>
-    /// <remarks>
-    ///     The queue is saved to the file path specified in <see cref="DownloaderOptions.QueuePersistencePath" />.
-    ///     If the directory does not exist, it will be created. The method logs the operation's success or failure.
-    /// </remarks>
-    /// <returns>A task that represents the asynchronous save operation.</returns>
-    /// <exception cref="ArgumentException">
-    ///     Thrown when the file path specified in <see cref="DownloaderOptions.QueuePersistencePath" /> is null, empty, or
-    ///     whitespace.
-    /// </exception>
-    /// <exception cref="Exception">
-    ///     Thrown when an error occurs during the save operation.
-    /// </exception>
-    public async Task SaveQueueAsync()
-    {
-        string filePath = DownloaderOptions.Default.QueueFilename;
 
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            throw new ArgumentException("A valid file path must be provided.", nameof(filePath));
-        }
-
-        string? directory = Path.GetDirectoryName(filePath);
-
-        if (!string.IsNullOrWhiteSpace(directory) && !Directory.Exists(directory))
-        {
-            _ = Directory.CreateDirectory(directory);
-        }
-
-        try
-        {
-            string[] urls = _urlQueue.ToArray();
-            await File.WriteAllLinesAsync(filePath, urls);
-            Program.Logger.LogInformation($"Queue saved to {filePath} ({urls.Length} URLs).");
-        }
-        catch (Exception ex)
-        {
-            Program.Logger.LogError(ex, $"Failed to save queue to {filePath}");
-
-        }
-    }
 
 
 
@@ -549,7 +542,6 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     {
         Program.Logger.LogInformation("Stopping all download tasks...");
 
-        await SaveQueueAsync();
 
         // Clear the URL queue to prevent new downloads from starting.
         while (_urlQueue.TryDequeue(out _))

@@ -25,4 +25,19 @@ public interface IBlogScraper : IScraper
     /// <returns></returns>
     Task DownloadCollectedLinksAsync();
 
+
+
+
+
+    /// <summary>
+    ///     Extracts URLs from the page that contain videos, but does not retrieve the actual video content.
+    /// </summary>
+    /// <returns></returns>
+    Task ExtractTargetLinksAsync();
+
+
+
+
+
+
 }

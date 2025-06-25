@@ -4,7 +4,7 @@
 // Distributed under Open Source License 
 // Do not remove file headers
 
-namespace MediaRecycler.Modules;
+namespace MediaRecycler.Modules.Interfaces;
 
 public interface IUrlDownloader
 {
@@ -18,7 +18,6 @@ public interface IUrlDownloader
     Task LoadQueueAsync();
     void QueueUrl(string url);
     void QueueUrls(IEnumerable<string> urls);
-    Task SaveQueueAsync();
     Task StartDownloadsAsync();
     Task StopAllTasksAsync();
 }
