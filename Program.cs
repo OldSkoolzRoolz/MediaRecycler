@@ -23,7 +23,7 @@ using MediaRecycler.Modules.Interfaces;
 namespace MediaRecycler;
 
 
-internal static class Program
+internal  class Program
 {
 
     public static ILogger? Logger { get; private set; }

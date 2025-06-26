@@ -165,21 +165,16 @@ public partial class MainForm : Form
     {
         btn_download.Enabled = false;
 
-        IBlogScraper? scraper = new BlogScraper(_aggregator);
-        _scraper = scraper;
-
-        if (_scraper is IBlogScraper bscraper)
-        {
-            try
-            {
-                await bscraper.ExtractTargetLinksAsync();
+        try{
+                await _blogScraper.ExtractTargetLinksAsync();
             }
             catch (Exception)
             {
 
 
             }
-        }
+
+        btn_download.Enabled = true;
 
     }
 
@@ -194,13 +189,9 @@ public partial class MainForm : Form
         {
 
 
-            IBlogScraper? scraper = new BlogScraper(_aggregator);
-            _scraper = scraper;
 
-            if (_scraper is IBlogScraper bscraper)
-            {
-                await bscraper.DownloadCollectedLinksAsync();
-            }
+         
+                await _blogScraper.DownloadCollectedLinksAsync();
         }
         catch (Exception ex)
         {
