@@ -12,7 +12,6 @@ namespace MediaRecycler.Modules.Interfaces;
 
 public interface IScraper
 {
-
     ValueTask CancelAsync();
 
     ValueTask DisposeAsync();

@@ -107,29 +107,47 @@ public class PuppeteerManager : IAsyncDisposable
                     LogProcess = true,
                     Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
                     UserDataDir = HeadlessBrowserOptions.Default.UserDataDir
-
-
-
-
                 });
 
-                var pages = await browser.PagesAsync();
-                Page = pages.Length > 0 ? pages.First() : await browser.NewPageAsync();
-
-
-
                 Browser = browser;
-                // await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
-                if (Browser is null)
-                {
-                    throw new ArgumentNullException(nameof(Browser), "Browser failed to initialize.");
-                }
-
-                if (Page is null)
-                {
-                    throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
-                }
             }
+
+            // Context = await browser.CreateBrowserContextAsync();
+            Page = await Browser.NewPageAsync();
+            Page.DefaultTimeout = 90000;
+            Page.DefaultNavigationTimeout = 90000;
+
+            /*
+                            await Page.SetRequestInterceptionAsync(true);
+
+                            // Add an event listener to intercept requests
+                            Page.Request += async (sender, e) =>
+                            {
+                                // Here you can check for specific requests and block them
+                                if (e.Request.ResourceType != ResourceType.Document)
+                                {
+                                    // Block the request
+                                    await e.Request.AbortAsync();
+                                }
+                                else
+                                {
+                                    // Allow the request to continue
+                                    await e.Request.ContinueAsync();
+                                }
+                            };
+
+                            */
+            // await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
+            if (Browser is null)
+            {
+                throw new ArgumentNullException(nameof(Browser), "Browser failed to initialize.");
+            }
+
+            if (Page is null)
+            {
+                throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
+            }
+
 
         }
         catch (Exception e)
@@ -137,6 +155,9 @@ public class PuppeteerManager : IAsyncDisposable
 
             Program.Logger.LogError(e, "Error initializing puppet manager.");
             _aggregator.Publish(new StatusMessage("Unable to create browser object. Check settings and try again."));
+            if (Context != null) await Context.CloseAsync();
+            if (Browser != null) await Browser.CloseAsync();
+
         }
     }
 
@@ -145,52 +166,62 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
+    /// <summary>
+    /// 
+    /// </summary>
+    public IBrowserContext? Context { get; set; }
 
-    private async Task CreateBrowserTaskAsync(HeadlessBrowserOptions @default)
-    {
-        try
+
+
+
+
+    /*
+
+        private async Task CreateBrowserTaskAsync(HeadlessBrowserOptions @default)
         {
-
-            var launchOptions = new PuppeteerSharp.LaunchOptions
+            try
             {
-                Headless = false, //HeadlessBrowserOptions.Default.Headless,
-                ExecutablePath = Properties.Settings.Default.PuppeteerExecutablePath,
-                UserDataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ChromeData"),
-                DefaultViewport = null,
-                Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
-            };
 
-            Browser = await Puppeteer.LaunchAsync(launchOptions);
-            Browser.Disconnected += OnBrowserDisconnect;
-            Browser.TargetDestroyed += OnTargetDestroyed;
-            Browser.Closed += OnBrowserClosed;
+                var launchOptions = new PuppeteerSharp.LaunchOptions
+                {
+                    Headless = false, //HeadlessBrowserOptions.Default.Headless,
+                    ExecutablePath = Properties.Settings.Default.PuppeteerExecutablePath,
+                    UserDataDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ChromeData"),
+                    DefaultViewport = null,
+                    Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
+                };
+
+                Browser = await Puppeteer.LaunchAsync(launchOptions);
+                Browser.Disconnected += OnBrowserDisconnect;
+                Browser.TargetDestroyed += OnTargetDestroyed;
+                Browser.Closed += OnBrowserClosed;
 
 
-            Program.Logger.LogInformation("Browser launched successfully.");
+                Program.Logger.LogInformation("Browser launched successfully.");
 
-            var pages = await Browser.PagesAsync();
-            Page = pages.Length > 0 ? pages.First() : await Browser.NewPageAsync();
+                var pages = await Browser.PagesAsync();
+                Page = pages.Length > 0 ? pages.First() : await Browser.NewPageAsync();
 
-            _ = await Page.GoToAsync(ScrapingOptions.Default.StartingWebPage);
+                _ = await Page.GoToAsync(ScrapingOptions.Default.StartingWebPage);
+
+
+
+            }
+            catch (Exception e)
+            {
+
+                Program.Logger.LogError(e, "Failed to initialize the browsesr..");
+            }
+
+
 
 
 
         }
-        catch (Exception e)
-        {
-
-            Program.Logger.LogError(e, "Failed to initialize the browsesr..");
-        }
 
 
 
-
-
-    }
-
-
-
-
+        */
 
 
 

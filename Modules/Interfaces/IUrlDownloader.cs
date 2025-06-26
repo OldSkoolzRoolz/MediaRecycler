@@ -15,7 +15,6 @@ public interface IUrlDownloader
     event EventHandler? QueueFinished;
 
     ValueTask DisposeAsync();
-    Task LoadQueueAsync();
     void QueueUrl(string url);
     void QueueUrls(IEnumerable<string> urls);
     Task StartDownloadsAsync();

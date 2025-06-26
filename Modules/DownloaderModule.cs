@@ -27,7 +27,7 @@ namespace MediaRecycler.Modules;
 /// <summary>
 ///     Handles concurrent downloading of files with retry, queue persistence, and robust error handling.
 /// </summary>
-public class DownloaderModule : IAsyncDisposable
+public class DownloaderModule : IAsyncDisposable, Interfaces.IDownloaderModule
 {
 
     private readonly SemaphoreSlim _concurrencySemaphore;

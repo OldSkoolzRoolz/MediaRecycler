@@ -108,6 +108,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
+    /// <inheritdoc/>
     public int QueueCount
     {
         get { return _urlQueue.Count; }
@@ -200,6 +201,13 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     private readonly object _queLock = new();
 
 
+
+
+
+
+
+
+
     /// <summary>
     ///     The core worker method. Each worker runs this method, continuously dequeuing
     ///     and processing URLs until the queue is empty.
@@ -248,67 +256,12 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-    /// <summary>
-    ///     Loads the download queue from a persistent storage file asynchronously.
-    /// </summary>
-    /// <remarks>
-    ///     This method reads URLs from a file specified in <see cref="DownloaderOptions.QueuePersistencePath" />.
-    ///     Each valid URL is added to the internal queue. If the file does not exist or is empty, no URLs are loaded.
-    /// </remarks>
-    /// <exception cref="ArgumentException">
-    ///     Thrown when the file path specified in <see cref="DownloaderOptions.QueuePersistencePath" /> is null, empty, or
-    ///     whitespace.
-    /// </exception>
-    /// <exception cref="Exception">
-    ///     Thrown when an error occurs while reading the file or processing its contents.
-    /// </exception>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task LoadQueueAsync()
-    {
-        string filePath = DownloaderOptions.Default.QueueFilename;
-
-        if (string.IsNullOrWhiteSpace(filePath))
-        {
-            throw new ArgumentException("A valid file path must be provided.", nameof(filePath));
-        }
-
-        if (!File.Exists(filePath))
-        {
-            Program.Logger.LogInformation($"Queue file '{filePath}' does not exist. Nothing to load.");
-            return;
-        }
-
-        try
-        {
-            string[] lines = await File.ReadAllLinesAsync(filePath);
-            int loadedCount = 0;
-
-            foreach (string line in lines)
-            {
-                string? url = line?.Trim();
-
-                if (!string.IsNullOrWhiteSpace(url) && Uri.IsWellFormedUriString(url, UriKind.Absolute))
-                {
-                    _urlQueue.Enqueue(url);
-                    loadedCount++;
-                }
-            }
-
-            Program.Logger.LogInformation($"Loaded {loadedCount} URLs from queue file '{filePath}'.");
-        }
-        catch (Exception ex)
-        {
-            Program.Logger.LogError(ex, $"Failed to load queue from {filePath}");
-            throw;
-        }
-    }
 
 
 
 
 
-
-
+    /// <inheritdoc/>
     protected virtual async Task OnDownloadCompleted(DownloadCompletedEventArgs e)
     {
         Program.Logger.LogDebug($"Download complete: {e?.FilePath}");
@@ -329,6 +282,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
+    /// <inheritdoc/>
     protected virtual void OnDownloadFailed(DownloadFailedEventArgs e)
     {
         Program.Logger.LogError(e.Exception, $"Download failed: {e.Url}");
@@ -341,6 +295,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
+    /// <inheritdoc/>
     protected virtual void OnQueueFinished()
     {
         Program.Logger.LogDebug("The download queue has been processed. Downloader exiting.");
@@ -364,9 +319,15 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
         string postid = Path.GetFileNameWithoutExtension(fileName).Split("-")[1];
         string destinationPath = Path.Combine(DownloaderOptions.Default.DownloadPath, $"{postid}.mp4");
         const int buffer = 81920;
+
         try
         {
-            if (File.Exists(destinationPath)) return;
+            if (File.Exists(destinationPath))
+            {
+                Program.Logger.LogInformation("Skipping duplicate file: {Url}.", url);
+                await DataLayer.UpdateTargetDownloaded(postid);
+                return;
+            }
 
             var context = new Context { ["url"] = url };
 
@@ -402,11 +363,11 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
                 try
                 {
                     File.Delete(destinationPath);
-                    Program.Logger.LogWarning($"Deleted corrupted file {destinationPath} due to size mismatch.");
+                    Program.Logger.LogWarning("Deleted corrupted file {DestinationPath} due to size mismatch.", destinationPath);
                 }
                 catch (IOException ex)
                 {
-                    Program.Logger.LogError(ex, $"Failed to delete corrupted file {destinationPath}. Manual intervention may be required.");
+                    Program.Logger.LogError(ex, "Failed to delete corrupted file {DestinationPath}. Manual intervention may be required.", destinationPath);
                 }
                 throw new IOException($"Download verification failed for '{url}'. Expected {expectedLength.Value} bytes but received {actualLength} bytes.");
             }
@@ -538,6 +499,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
+    /// <inheritdoc/>
     public async Task StopAllTasksAsync()
     {
         Program.Logger.LogInformation("Stopping all download tasks...");

@@ -45,8 +45,6 @@ internal class DataLayer
     /// <summary>
     /// Inserts a target link into the database.
     /// </summary>
-    /// <param name="postId">The ID of the post.</param>
-    /// <param name="link">The link to be inserted.</param>
     /// <exception cref="ArgumentException">Thrown if postId or link is null or whitespace.</exception>
     /// <exception cref="InvalidOperationException">Thrown if the insert operation fails.</exception>
     internal static void InsertTargetLinkToDb(string postId, string link)
@@ -114,44 +112,37 @@ internal class DataLayer
 
 
 
-    internal static bool InsertPostPageUrlToDb(string postid, string link)
+    internal static async Task InsertPostPageUrlToDb(string postid, string link)
     {
-        if (string.IsNullOrWhiteSpace(postid) || string.IsNullOrWhiteSpace(link))
-        {
-            throw new ArgumentException("Post ID and link are required.");
-        }
+
 
         try
         {
-            using (var db = new MRContext())
+            await using (var db = new MRContext())
             {
                 db.PostPages.Add(new PostPage(postid, link));
 
                 try
                 {
-                    db.SaveChanges();
-                    return true;
+                    await db.SaveChangesAsync();
                 }
-                catch (DbUpdateException ex) 
+                catch (DbUpdateException)
                 {
                     // Handle database update exception
-                    _logger.LogError( "Failed to insert duplicate post page URL to database.");
-                    return false;
+                    _logger.LogError("Failed to insert duplicate post page URL to database.");
                 }
-              
-                catch (Exception ex)
+
+                catch (Exception)
                 {
                     // Handle other unexpected exceptions
                     _logger.LogError("An unexpected error occurred while inserting post page URL to database.");
-                    return false;
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log or handle the exception
             _logger.LogError("Failed to insert post page URL to database.");
-            return false;
         }
     }
 
@@ -170,48 +161,32 @@ internal class DataLayer
 
 
 
-    internal static bool InsertPostPageUrlToDb(string link)
+    internal static void InsertPostPageUrlToDb(string link)
     {
         string? postid = link.Split("/").LastOrDefault();
-        return string.IsNullOrWhiteSpace(postid)
-            ? throw new ArgumentException("Unable to extract post ID from the link. Use different method overload.")
-            : InsertPostPageUrlToDb(postid, link);
+
+        if (!string.IsNullOrWhiteSpace(postid))
+        {
+            InsertPostPageUrlToDb(postid, link);
+
+        }
+
     }
 
-    internal static void UpdatePostPageProcessedFlag(int iid)
-    {
-        using (var db = new MRContext())
-        {
-            var page = db.PostPages.FirstOrDefault(p => p.Id == iid);
-            if (page != null)
-            {
-                page.IsProcessed = true;
-                try
-                {
-                    db.SaveChanges();
-                }
-                catch (DbUpdateException ex)
-                {
-                    // Handle database update exception
-                    throw new InvalidOperationException("Failed to update post page processed flag.", ex);
-                }
-            }
-        }
-    }
+
 
     internal static async Task UpdatePostPageProcessedFlagAsync(string postid, bool isProcessed)
     {
-        if (string.IsNullOrWhiteSpace(postid))
-        {
-            throw new ArgumentException("Post ID is required.");
-        }
 
-        using (var db = new MRContext())
+
+        await using (var db = new MRContext())
         {
             var page = await db.PostPages.SingleOrDefaultAsync(p => p.PostId == postid.ToString());
+
             if (page != null)
             {
                 page.IsProcessed = isProcessed;
+
                 try
                 {
                     await db.SaveChangesAsync();
@@ -222,17 +197,23 @@ internal class DataLayer
                     throw new InvalidOperationException("Failed to update post page processed flag asynchronously.", ex);
                 }
             }
-            else
-            {
-                // Handle the case where the post page is not found
-                throw new InvalidOperationException("Post page not found.");
-            }
+
         }
     }
 
 
 
-
+    public static async Task InsertTargetLinkAndMarkPageAsProcessedAsync(string postId, string videoLink)
+    {
+        using var db = new MRContext();
+        db.TargetLinks.Add(new TargetLink { PostId = postId, Link = videoLink });
+        var record = db.PostPages.SingleOrDefault(p => p.PostId == postId);
+        if (record != null)
+        {
+            record.IsProcessed = true;
+            await db.SaveChangesAsync();
+        }
+    }
 
 
 
@@ -242,8 +223,12 @@ internal class DataLayer
         await using (var db = new MRContext())
         {
 
-            var record = await db.TargetLinks.SingleOrDefaultAsync(p => p.PostId == ePostId);
-            if (record == null) return;
+            var record = await db.TargetLinks.Where(p => p.PostId == ePostId).FirstOrDefaultAsync();
+            if (record == null)
+            {
+                _logger.LogError("Record not found in db");
+                return;
+            }
             try
             {
                 record.IsDownloaded = true;
@@ -263,4 +248,8 @@ internal class DataLayer
 
     }
 
+    internal static async Task MarkPostPageAsProcessedAsync(string postId)
+    {
+        throw new NotImplementedException();
+    }
 }

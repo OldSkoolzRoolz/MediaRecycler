@@ -27,7 +27,7 @@ namespace MediaRecycler.Modules;
 ///     It encapsulates common puppeteersharp methods low-level browser interactions and includes
 ///     error handling and retry logic for individual actions.
 /// </summary>
-public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationService
+public class PuppeteerAutomationService : IWebAutomationService, IAsyncDisposable
 {
 
     private readonly IEventAggregator? _aggregator;
@@ -222,7 +222,7 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
     {
         get
         {
-            if (_puppeteerManager.Page == null) return null; return _puppeteerManager.Page;
+            return _puppeteerManager.Page == null ? null : _puppeteerManager.Page;
         }
     }
 
@@ -475,10 +475,12 @@ public class PuppeteerAutomationService : IAsyncDisposable, IWebAutomationServic
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public async ValueTask DisposeAsync()
     {
-        if (_puppeteerManager?.Page != null)
-        {
-            await _puppeteerManager.Page.DisposeAsync();
-        }
+        if (_puppeteerManager?.Page != null) await _puppeteerManager.Page.DisposeAsync();
+
+
+
+        if (_puppeteerManager.Browser != null) await _puppeteerManager.Browser.DisposeAsync();
+
     }
 
 }

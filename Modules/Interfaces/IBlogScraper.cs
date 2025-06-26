@@ -17,11 +17,9 @@ public interface IBlogScraper : IScraper
 
 
 
-
     /// <summary>
     /// 
     /// </summary>
-    /// <param name="collectedUrls"></param>
     /// <returns></returns>
     Task DownloadCollectedLinksAsync();
 

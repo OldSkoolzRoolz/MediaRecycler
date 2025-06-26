@@ -112,7 +112,9 @@ public static class ProcessUtils
 
 
 
-    //Terminate all running processes with the name of chrome.exe and iexplorer.exe
+    /// <summary>
+    /// 
+    /// </summary>
     public static void TerminateBrowserProcesses()
     {
         try
@@ -127,6 +129,7 @@ public static class ProcessUtils
                 {
                     try
                     {
+                        KillProcessesByName(process.ProcessName, Program.Logger);
                         process.Kill();
                         Program.Logger?.LogInformation($"Terminated process: {process.ProcessName} (ID: {process.Id})");
                     }

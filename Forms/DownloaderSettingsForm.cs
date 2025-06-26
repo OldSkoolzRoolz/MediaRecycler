@@ -95,7 +95,7 @@ public partial class DownloaderSettingsForm : Form
             _ = MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             Close();
         }
-        catch (Exception exception)
+        catch (Exception)
         {
             _ = MessageBox.Show("Error saving settings to file.");
             //Program.Logger.LogError(exception, "Error saving settings.");

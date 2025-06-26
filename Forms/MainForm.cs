@@ -25,7 +25,7 @@ public partial class MainForm : Form
     private readonly IEventAggregator _aggregator = new EventAggregator();
     private UrlDownloader? _downloadManager;
     private IScraper? _scraper;
-
+    private IBlogScraper _blogScraper;
 
 
 
@@ -33,10 +33,11 @@ public partial class MainForm : Form
 
 
     /// <inheritdoc />
-    public MainForm()
+    public MainForm(IBlogScraper blogScraper)
     {
         InitializeComponent();
 
+        _blogScraper = blogScraper;
 
 
         // subscribe to the aggregator for the events we are interested in and assign the handlers
@@ -135,20 +136,16 @@ public partial class MainForm : Form
             // Example: If you have a DownloadManager or similar service, you would resolve and start it here.
             // This is a placeholder for actual download logic.
             AppendToMainViewer(this, "Starting download process...");
-            await _downloadManager.LoadQueueAsync();
 
-            SetStatusLabelText(this, "Download manager running...");
             await _downloadManager.StartDownloadsAsync();
 
 
-            SetStatusLabelText(this, "Download Manager is complete.");
 
         }
         catch (Exception ex)
         {
             Program.Logger?.LogError(ex, "Error running download process.");
             AppendToMainViewer(this, $"Error running download: {ex.Message}");
-            SetStatusLabelText(this, "Download failed.");
 
         }
         finally
@@ -166,7 +163,7 @@ public partial class MainForm : Form
 
     private async void btn_Process_Click(object sender, EventArgs e)
     {
-
+        btn_download.Enabled = false;
 
         IBlogScraper? scraper = new BlogScraper(_aggregator);
         _scraper = scraper;
@@ -195,7 +192,6 @@ public partial class MainForm : Form
         btn_Process.Enabled = false;
         try
         {
-            _aggregator.Publish(new StatusMessage("Queuing videos..."));
 
 
             IBlogScraper? scraper = new BlogScraper(_aggregator);
@@ -210,19 +206,20 @@ public partial class MainForm : Form
         {
 
             Program.Logger.LogError(ex, "An unhandled error occured. Attempting to save progress before aborting...");
-            SetStatusLabelText(this, ex.Message);
+            _aggregator.Publish(new StatusBarMessage("Downloading of videos ended in failure."));
 
+
+
+        }
+        finally
+        {
             if (_scraper != null)
             {
                 await _scraper.CancelAsync();
                 await _scraper.DisposeAsync();
             }
-
-        }
-        finally
-        {
-            _aggregator.Publish(new StatusMessage("Queuing videos complete."));
-            SetStatusLabelText(null, "Video Queue finished.");
+            _aggregator.Publish(new StatusBarMessage("Downloading of videos complete."));
+            Program.Logger.LogInformation("Video Queue finished.");
         }
 
         btn_Process.Enabled = true;
@@ -245,6 +242,8 @@ public partial class MainForm : Form
     private async void btn_Scrape_Click(object sender, EventArgs e)
     {
         btn_GetVidPages.Enabled = false;
+        ProcessUtils.TerminateBrowserProcesses();
+        ProcessUtils.KillPreviousWebBrowserProcesses();
 
         try
         {
@@ -253,15 +252,14 @@ public partial class MainForm : Form
             // 1. Create the automation service, injecting the page from our manager.
 
             // 2. Create the scraper, injecting the automation service.
-            IBlogScraper? bScraper = new BlogScraper(_aggregator);
-            _scraper = bScraper; // Store the scraper instance in parent interface variable so it can be accessed by the form or other methods without knowing the specific type that has been created.
+          //  IBlogScraper? bScraper = new BlogScraper(_aggregator);
+           // _scraper = bScraper; // Store the scraper instance in parent interface variable so it can be accessed by the form or other methods without knowing the specific type that has been created.
 
             // This is useful for polymorphism and allows us to call methods on the interface without needing to know the concrete implementation.
 
-            if (_scraper is IBlogScraper scraper)
-            {
-                await scraper.BeginScrapingTargetBlogAsync();
-            }
+           
+                await _blogScraper.BeginScrapingTargetBlogAsync();
+           
 
         }
         catch (Exception ex)
@@ -272,12 +270,7 @@ public partial class MainForm : Form
         }
         finally
         {
-            //call dispose on parent interface variable to ensure the scraper is disposed of correctly.
-            if (_scraper != null)
-            {
-                await _scraper.DisposeAsync();
 
-            }
             AppendToMainViewer(this, "Blog scraping action has completed...");
         }
 
@@ -496,23 +489,6 @@ public partial class MainForm : Form
 
 
 
-
-
-    /// <summary>
-    /// Sets the text of the status label.
-    /// </summary>
-    /// <param name="sender">The object that triggered this method call.</param>
-    /// <param name="text">The text to be displayed in the status label.</param>
-    public void SetStatusLabelText(object? sender, string text)
-    {
-        if (statusStrip1.InvokeRequired) // Use the parent control's InvokeRequired property
-        {
-            _ = BeginInvoke(() => SetStatusLabelText(sender, text));
-            return;
-        }
-
-        tsl_status.Text = text;
-    }
 
 
 
