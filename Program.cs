@@ -60,6 +60,8 @@ internal class Program
             _logger = serviceProvider.GetRequiredService<ILogger<Program>>();
             Log.LogInformation("Application Starting");
 
+            Log.WriteMessage += s => _logger.LogInformation(s);
+
             //Start the host.. This runs background services.
             // We don't await host.RunAsync() because its a blocking call
             // and we need to run the Windforms message loop.
