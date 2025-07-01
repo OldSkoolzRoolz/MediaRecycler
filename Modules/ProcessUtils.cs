@@ -1,13 +1,17 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
+// Project Name: MediaRecycler
+// File Name: ProcessUtils.cs
+// Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
+// Distributed under Open Source License
 // Do not remove file headers
+
 
 
 
 using System.ComponentModel;
 using System.Diagnostics;
+
+using MediaRecycler.Logging;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -22,6 +26,35 @@ namespace MediaRecycler.Modules;
 /// </summary>
 public static class ProcessUtils
 {
+
+    private static readonly ILogger? _logger;
+
+
+
+
+
+
+    public static void KillPreviousWebBrowserProcesses()
+    {
+        var matchingProcesses = Process.GetProcesses()
+                    /*
+                    2020-02-17
+                    .Where(process => process.StartInfo.Arguments.Contains(UserDataDirPath(), StringComparison.InvariantCultureIgnoreCase))
+                    */
+                    .Where(ProcessIsWebBrowser).ToList();
+
+        foreach (var process in matchingProcesses)
+        {
+            if (process.HasExited) continue;
+
+            process.Kill();
+        }
+    }
+
+
+
+
+
 
     /// <summary>
     ///     Finds and attempts to terminate all running processes with the specified name (case-insensitive).
@@ -40,29 +73,30 @@ public static class ProcessUtils
             return 0;
         }
 
-        logger.LogInformation("Attempting to find and kill processes named '{ProcessName}'...", processName);
+        Log.LogInformation("Attempting to find and kill processes named {ProcessName}...", processName);
 
         // Get all processes and filter manually for case-insensitivity and robustness
         var processesToKill = Process.GetProcesses().Where(p => p.ProcessName.Equals(processName, StringComparison.OrdinalIgnoreCase));
 
         foreach (var process in processesToKill)
-        {
             try
             {
                 logger.LogDebug("Attempting to kill process ID: {ProcessId}, Name: {ProcessName}", process.Id, process.ProcessName);
                 process.Kill(true); // Attempt to kill the entire process tree
                 _ = process.WaitForExit(5000); // Wait briefly for the process to exit
-                logger.LogInformation("Successfully killed process ID: {ProcessId}", process.Id);
+                Log.LogInformation("Successfully killed process ID: {ProcessId}", process.Id);
                 killedCount++;
             }
             catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
             {
                 logger.LogWarning(ex, "Failed to kill process ID: {ProcessId}. It might have already exited or access was denied.", process.Id);
             }
-            finally { process.Dispose(); } // Release process resources
-        }
+            finally
+            {
+                process.Dispose();
+            } // Release process resources
 
-        logger.LogInformation("Finished killing processes. Terminated {KilledCount} processes named '{ProcessName}'.", killedCount, processName);
+        Log.LogInformation("Finished killing processes. Terminated {KilledCount} processes named {ProcessName}.", killedCount, processName);
         return killedCount;
     }
 
@@ -71,35 +105,10 @@ public static class ProcessUtils
 
 
 
-
-
-
-
-
-    public static void KillPreviousWebBrowserProcesses()
+    public static bool ProcessIsWebBrowser(Process process)
     {
-        var matchingProcesses =
-                    System.Diagnostics.Process.GetProcesses()
-                                /*
-                                2020-02-17
-                                .Where(process => process.StartInfo.Arguments.Contains(UserDataDirPath(), StringComparison.InvariantCultureIgnoreCase))
-                                */
-                                .Where(ProcessIsWebBrowser)
-                                .ToList();
+        if (!process.Responding) return false;
 
-        foreach (var process in matchingProcesses)
-        {
-            if (process.HasExited)
-            {
-                continue;
-            }
-
-            process.Kill();
-        }
-    }
-
-    public static bool ProcessIsWebBrowser(System.Diagnostics.Process process)
-    {
         try
         {
             return process.MainModule.FileName.Contains(".local-chromium");
@@ -112,8 +121,10 @@ public static class ProcessUtils
 
 
 
+
+
+
     /// <summary>
-    /// 
     /// </summary>
     public static void TerminateBrowserProcesses()
     {
@@ -126,31 +137,22 @@ public static class ProcessUtils
                 var processes = Process.GetProcessesByName(processName);
 
                 foreach (var process in processes)
-                {
                     try
                     {
-                        KillProcessesByName(process.ProcessName, Program.Logger);
+                        KillProcessesByName(process.ProcessName, _logger);
                         process.Kill();
-                        Program.Logger?.LogInformation($"Terminated process: {process.ProcessName} (ID: {process.Id})");
+                        _logger?.LogInformation($"Terminated process: {process.ProcessName} (ID: {process.Id})");
                     }
                     catch (Exception ex)
                     {
-                        Program.Logger?.LogWarning($"Failed to terminate process: {process.ProcessName} (ID: {process.Id}). Error: {ex.Message}");
+                        _logger?.LogWarning($"Failed to terminate process: {process.ProcessName} (ID: {process.Id}). Error: {ex.Message}");
                     }
-                }
             }
         }
         catch (Exception ex)
         {
-            Program.Logger?.LogError($"An error occurred while terminating browser processes: {ex.Message}");
+            _logger?.LogError($"An error occurred while terminating browser processes: {ex.Message}");
         }
     }
-
-
-
-
-
-
-
 
 }

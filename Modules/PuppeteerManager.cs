@@ -1,16 +1,16 @@
-﻿// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
+﻿// Project Name: MediaRecycler
+// File Name: PuppeteerManager.cs
+// Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
+// Distributed under Open Source License
 // Do not remove file headers
 
 
 
 
-using MediaRecycler.Modules.Loggers;
+using MediaRecycler.Logging;
 using MediaRecycler.Modules.Options;
-
-using Microsoft.Extensions.Logging;
+using MediaRecycler.Properties;
 
 using PuppeteerSharp;
 using PuppeteerSharp.BrowserData;
@@ -27,20 +27,88 @@ namespace MediaRecycler.Modules;
 public class PuppeteerManager : IAsyncDisposable
 {
 
-    private readonly IEventAggregator _aggregator;
-    private bool _disposed = false;
+    private bool _disposed;
+
+
+
+    /// <summary>
+    /// </summary>
+    public IBrowserContext? Context { get; set; }
+
+
+
+    /// <summary>
+    ///     Gets or sets the Puppeteer <see cref="PuppeteerSharp.IPage" /> instance.
+    ///     This property represents the current page being managed by the Puppeteer browser.
+    /// </summary>
+    /// <remarks>
+    ///     The <see cref="Page" /> is initialized during the browser setup process and is used
+    ///     for navigation, interaction, and automation of web pages. Ensure that the browser
+    ///     and context are properly initialized before accessing this property.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown if the <see cref="Page" /> fails to initialize during the setup process.
+    /// </exception>
+    public IPage Page { get; set; }
+
+
+    /// <summary>
+    ///     Gets or sets the instance of the Puppeteer <see cref="PuppeteerSharp.IBrowser" />.
+    ///     This property represents the browser instance managed by the <see cref="PuppeteerManager" />.
+    /// </summary>
+    /// <value>
+    ///     The <see cref="PuppeteerSharp.IBrowser" /> instance used for managing browser operations.
+    /// </value>
+    /// <remarks>
+    ///     Ensure that the browser is properly initialized before accessing this property.
+    ///     If the browser fails to initialize, an <see cref="ArgumentNullException" /> may be thrown.
+    /// </remarks>
+    public IBrowser? Browser { get; set; }
 
 
 
 
 
 
-
-    public PuppeteerManager(IEventAggregator aggregator)
+    /// <summary>
+    ///     Asynchronously releases the resources used by the <see cref="PuppeteerManager" /> instance.
+    /// </summary>
+    /// <remarks>
+    ///     This method ensures that the <see cref="IBrowser" /> and <see cref="IPage" /> instances are properly closed and
+    ///     disposed of.
+    ///     It logs any errors encountered during the disposal process and notifies other components if necessary.
+    /// </remarks>
+    /// <returns>A <see cref="ValueTask" /> representing the asynchronous operation.</returns>
+    /// <exception cref="Exception">
+    ///     Thrown if an error occurs while closing the browser or page.
+    /// </exception>
+    public async ValueTask DisposeAsync()
     {
-        _aggregator = aggregator;
+        if (_disposed) return;
 
+        _disposed = true;
 
+        Log.LogInformation("Disposing Puppeteer resources...");
+
+        try
+        {
+            if (Page is { IsClosed: false }) await Page.CloseAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning($"Error closing page: {ex.Message}");
+        }
+
+        try
+        {
+            if (Browser != null) await Browser.CloseAsync();
+        }
+        catch (Exception ex)
+        {
+            Log.LogWarning($"Error closing browser: {ex.Message}");
+        }
+
+        Log.LogInformation("Resources disposed.");
     }
 
 
@@ -48,12 +116,81 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
+    /*
+
+    public static async Task<PuppeteerManager?> CreateAsync(IEventAggregator aggregator)
+    {
+        var manager = new PuppeteerManager(aggregator);
+        _logger = _logger;
+        _ = HeadlessBrowserOptions.Default;
+        var df = new LaunchOptions
+        {
+                    Headless = false,
+                    ExecutablePath = "D:\\Chrome\\Win64-132.0.6834.83\\chrome-win64\\chrome.exe",
+                    Timeout = 60000,
+                    UserDataDir = "D:\\chromeuserdata",
+                    DefaultViewport = new ViewPortOptions { Width = 1100, Height = 1000 },
+                    ProtocolTimeout = 30000
+        };
+
+        try
+        {
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Log.LogError($"[FATAL] Failed to initialize Puppeteer: {ex.Message}");
+            await manager.DisposeAsync();
+            return null;
+        }
+    }
+
+
+
+    */
 
 
 
 
 
 
+    /// <summary>
+    ///     Attempts to connect to an existing Puppeteer browser instance using the last known WebSocket endpoint.
+    /// </summary>
+    /// <returns>
+    ///     An <see cref="IBrowser" /> instance if the connection is successful; otherwise, <c>null</c>.
+    /// </returns>
+    /// <remarks>
+    ///     If the connection fails, the method logs the error, clears the last used WebSocket endpoint,
+    ///     and saves the updated settings.
+    /// </remarks>
+    /// <exception cref="Exception">
+    ///     Thrown if an unexpected error occurs during the connection attempt.
+    /// </exception>
+    private async Task<IBrowser?> AttemptToConnectAsync()
+    {
+        string? lastWsEndpoint = Settings.Default.LastWSEndPoint;
+
+        if (string.IsNullOrEmpty(lastWsEndpoint)) return null;
+
+        try
+        {
+            Log.LogInformation($"Attempting to connect to browser at {lastWsEndpoint}...");
+            var browser = await Puppeteer.ConnectAsync(new ConnectOptions { BrowserWSEndpoint = lastWsEndpoint }).ConfigureAwait(false);
+            Log.LogInformation("Successfully connected to the browser.");
+            return browser;
+        }
+        catch (Exception ex)
+        {
+            Log.LogError($"Failed to connect to browser: {ex.Message}");
+
+            //clear the last used endpoint if connection fails
+            Settings.Default.LastWSEndPoint = null;
+            Settings.Default.Save();
+            return null;
+        }
+    }
 
 
 
@@ -74,11 +211,12 @@ public class PuppeteerManager : IAsyncDisposable
         //   Browser = await AttemptToConnectAsync();
         var fo = new BrowserFetcherOptions
         {
-            Path = Path.GetFullPath(nameof(Environment.SpecialFolder.ApplicationData))
+                    Path = Path.GetFullPath(nameof(Environment.SpecialFolder.ApplicationData))
         };
-        var fetch = new PuppeteerSharp.BrowserFetcher();
+        var fetch = new BrowserFetcher();
 
         Task<InstalledBrowser> t = fetch.DownloadAsync();
+
         try
         {
 
@@ -86,8 +224,8 @@ public class PuppeteerManager : IAsyncDisposable
         }
         catch (Exception e)
         {
-            _aggregator.Publish(new StatusBarMessage($"Failed to download browser: {e.Message}"));
-            Program.Logger.LogError(e, "Failed to download browser.");
+            // _aggregator.Publish(new StatusBarMessage($"Failed to download browser: {e.Message}"));
+            Log.LogError(e, "Failed to download browser.");
         }
 
 
@@ -96,17 +234,18 @@ public class PuppeteerManager : IAsyncDisposable
 
             if (Browser is null)
             {
-                Program.Logger.LogInformation("Launching new browser with saved settings....");
-                _aggregator.Publish(new StatusBarMessage("Launching browser...."));
+                Log.LogInformation("Launching new browser with saved settings....");
+
+                //  _aggregator.Publish(new StatusBarMessage("Launching browser...."));
 
                 var browser = await Puppeteer.LaunchAsync(new LaunchOptions
                 {
-                    Headless = HeadlessBrowserOptions.Default.Headless,
-                    ExecutablePath = t.Result.GetExecutablePath(),
-                    DefaultViewport = null,
-                    LogProcess = true,
-                    Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
-                    UserDataDir = HeadlessBrowserOptions.Default.UserDataDir
+                            Headless = HeadlessBrowserOptions.Default.Headless,
+                            ExecutablePath = t.Result.GetExecutablePath(),
+                            DefaultViewport = null,
+                            LogProcess = true,
+                            Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
+                            UserDataDir = HeadlessBrowserOptions.Default.UserDataDir
                 });
 
                 Browser = browser;
@@ -138,38 +277,24 @@ public class PuppeteerManager : IAsyncDisposable
 
                             */
             // await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
-            if (Browser is null)
-            {
-                throw new ArgumentNullException(nameof(Browser), "Browser failed to initialize.");
-            }
+            if (Browser is null) throw new ArgumentNullException(nameof(Browser), "Browser failed to initialize.");
 
-            if (Page is null)
-            {
-                throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
-            }
+            if (Page is null) throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
 
 
         }
         catch (Exception e)
         {
 
-            Program.Logger.LogError(e, "Error initializing puppet manager.");
-            _aggregator.Publish(new StatusMessage("Unable to create browser object. Check settings and try again."));
+            Log.LogError(e, "Error initializing puppet manager.");
+
+            // _aggregator.Publish(new StatusMessage("Unable to create browser object. Check settings and try again."));
             if (Context != null) await Context.CloseAsync();
             if (Browser != null) await Browser.CloseAsync();
 
         }
     }
 
-
-
-
-
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public IBrowserContext? Context { get; set; }
 
 
 
@@ -197,7 +322,7 @@ public class PuppeteerManager : IAsyncDisposable
                 Browser.Closed += OnBrowserClosed;
 
 
-                Program.Logger.LogInformation("Browser launched successfully.");
+                Log.LogInformation("Browser launched successfully.");
 
                 var pages = await Browser.PagesAsync();
                 Page = pages.Length > 0 ? pages.First() : await Browser.NewPageAsync();
@@ -210,7 +335,7 @@ public class PuppeteerManager : IAsyncDisposable
             catch (Exception e)
             {
 
-                Program.Logger.LogError(e, "Failed to initialize the browsesr..");
+                Log.LogError(e, "Failed to initialize the browsesr..");
             }
 
 
@@ -225,12 +350,14 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
+
+
+
     private void OnBrowserClosed(object? sender, EventArgs e)
     {
-        Program.Logger.LogError("Browser has been closed.");
+        Log.LogError("Browser has been closed.");
 
         // Notify other components about the browser closure
-        NotifyRecovery("The browser instance has been closed.");
 
         // Dispose of any resources if necessary
         DisposeAsync().AsTask().Wait();
@@ -242,31 +369,11 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
-
-
-    private void OnTargetDestroyed(object? sender, TargetChangedArgs e)
-    {
-        Program.Logger.LogError("A target has been destroyed: {TargetUrl}", e.Target.Url);
-
-        // Notify other components about the target destruction
-        NotifyRecovery($"Target destroyed: {e.Target.Url}");
-
-        DisposeAsync().AsTask().Wait();
-        throw new BrowserAbortedException("The browser instance has been closed.");
-    }
-
-
-
-
-
-
-
     private void OnBrowserDisconnect(object? sender, EventArgs e)
     {
-        Program.Logger.LogWarning("Browser has been disconnected.");
+        Log.LogWarning("Browser has been disconnected.");
 
         // Notify other components about the disconnection
-        NotifyRecovery("The browser instance has been disconnected.");
 
         // Attempt to clean up resources
         DisposeAsync().AsTask().Wait();
@@ -278,179 +385,21 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
-
-    public IPage Page
-    { get; set; }
-
-
-
-    public IBrowser? Browser { get; set; }
-
-
-
-
-
-
-
-    public async ValueTask DisposeAsync()
+    private void OnTargetDestroyed(object? sender, TargetChangedArgs e)
     {
-        if (_disposed)
-        {
-            return;
-        }
+        Log.LogError("A target has been destroyed: {TargetUrl}", e.Target.Url);
 
-        _disposed = true;
+        // Notify other components about the target destruction
 
-        Program.Logger.LogInformation("Disposing Puppeteer resources...");
-
-        try
-        {
-            if (Page is { IsClosed: false })
-            {
-                await Page.CloseAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Program.Logger.LogWarning($"Error closing page: {ex.Message}");
-            NotifyRecovery("Error closing page");
-        }
-
-        try
-        {
-            if (Browser != null)
-            {
-                await Browser.CloseAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Program.Logger.LogWarning($"Error closing browser: {ex.Message}");
-            NotifyRecovery("Problem closing browser.");
-        }
-
-        Program.Logger.LogInformation("Resources disposed.");
+        DisposeAsync().AsTask().Wait();
+        throw new BrowserAbortedException("The browser instance has been closed.");
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /*
-
-    public static async Task<PuppeteerManager?> CreateAsync(IEventAggregator aggregator)
-    {
-        var manager = new PuppeteerManager(aggregator);
-        _logger = Program.Logger;
-        _ = HeadlessBrowserOptions.Default;
-        var df = new LaunchOptions
-        {
-                    Headless = false,
-                    ExecutablePath = "D:\\Chrome\\Win64-132.0.6834.83\\chrome-win64\\chrome.exe",
-                    Timeout = 60000,
-                    UserDataDir = "D:\\chromeuserdata",
-                    DefaultViewport = new ViewPortOptions { Width = 1100, Height = 1000 },
-                    ProtocolTimeout = 30000
-        };
-
-        try
-        {
-
-            return null;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"[FATAL] Failed to initialize Puppeteer: {ex.Message}");
-            await manager.DisposeAsync();
-            return null;
-        }
-    }
-
-
-
-    */
-
-
-
-    /// <summary>
-    ///     Attempts to connect to an existing Puppeteer browser instance using the last known WebSocket endpoint.
-    /// </summary>
-    /// <returns>
-    ///     An <see cref="IBrowser" /> instance if the connection is successful; otherwise, <c>null</c>.
-    /// </returns>
-    /// <remarks>
-    ///     If the connection fails, the method logs the error, clears the last used WebSocket endpoint,
-    ///     and saves the updated settings.
-    /// </remarks>
-    /// <exception cref="Exception">
-    ///     Thrown if an unexpected error occurs during the connection attempt.
-    /// </exception>
-    private async Task<IBrowser?> AttemptToConnectAsync()
-    {
-        string? lastWsEndpoint = Properties.Settings.Default.LastWSEndPoint;
-
-        if (string.IsNullOrEmpty(lastWsEndpoint))
-        {
-            return null;
-        }
-
-        try
-        {
-            Program.Logger.LogInformation($"Attempting to connect to browser at {lastWsEndpoint}...");
-            var browser = await Puppeteer.ConnectAsync(new ConnectOptions { BrowserWSEndpoint = lastWsEndpoint }).ConfigureAwait(false);
-            Program.Logger.LogInformation("Successfully connected to the browser.");
-            return browser;
-        }
-        catch (Exception ex)
-        {
-            Program.Logger.LogError($"Failed to connect to browser: {ex.Message}");
-            NotifyRecovery("Failed to connect to browser.");
-
-            //clear the last used endpoint if connection fails
-            Properties.Settings.Default.LastWSEndPoint = null;
-            Properties.Settings.Default.Save();
-            return null;
-        }
-    }
-
-
-
-
-
-
-
-
-
-    private void NotifyRecovery(string message)
-    {
-        _aggregator?.Publish(new PuppeteerRecoveryEvent(message));
-    }
-
-
-
-
-
-
-
-
 
 }
 
 
-
-
-
-
-internal class BrowserAbortedException(string message) : Exception(message)
+internal class BrowserAbortedException(
+            string message) : Exception(message)
 {
+
 }

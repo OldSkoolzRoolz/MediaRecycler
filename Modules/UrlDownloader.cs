@@ -16,6 +16,7 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 
+using MediaRecycler.Logging;
 using MediaRecycler.Model;
 using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
@@ -76,7 +77,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
                     (exception, timespan, retryAttempt, context) =>
                     {
                         var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
-                        Program.Logger.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
+                        Log.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
                                      retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
                         return Task.CompletedTask;
                     });
@@ -91,7 +92,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
                           (exception, timespan, retryAttempt, context) =>
                           {
                               var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
-                              Program.Logger.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
+                              Log.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
                                            retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
                               return Task.CompletedTask;
                           });
@@ -199,8 +200,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
     private readonly object _queLock = new();
-
-
+    private readonly ILogger _logger;
 
 
 
@@ -222,7 +222,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             // If it is, we exit the worker loop.
             if (_urlQueue.IsEmpty)
             {
-                Program.Logger.LogDebug("The download queue is empty. Worker exiting.");
+                Log.LogDebug("The download queue is empty. Worker exiting.");
                 break;
             }
             lock (_queLock)
@@ -238,7 +238,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             try
             {
                 postid = Path.GetFileNameWithoutExtension(url).Split("-")[1];
-                Program.Logger.LogDebug($"Processing Url {url}...");
+                Log.LogDebug($"Processing Url {url}...");
                 await ProcessUrlAsync(url);
             }
             catch (Exception ex)
@@ -264,7 +264,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <inheritdoc/>
     protected virtual async Task OnDownloadCompleted(DownloadCompletedEventArgs e)
     {
-        Program.Logger.LogDebug($"Download complete: {e?.FilePath}");
+        Log.LogDebug($"Download complete: {e?.FilePath}");
         _aggregator.Publish(new QueueCountMessage(QueueCount));
 
 
@@ -285,7 +285,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <inheritdoc/>
     protected virtual void OnDownloadFailed(DownloadFailedEventArgs e)
     {
-        Program.Logger.LogError(e.Exception, $"Download failed: {e.Url}");
+        Log.LogError(e.Exception, $"Download failed: {e.Url}");
         DownloadFailed?.Invoke(this, e);
     }
 
@@ -298,7 +298,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <inheritdoc/>
     protected virtual void OnQueueFinished()
     {
-        Program.Logger.LogDebug("The download queue has been processed. Downloader exiting.");
+        Log.LogDebug("The download queue has been processed. Downloader exiting.");
         QueueFinished?.Invoke(this, EventArgs.Empty);
     }
 
@@ -324,7 +324,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
         {
             if (File.Exists(destinationPath))
             {
-                Program.Logger.LogInformation("Skipping duplicate file: {Url}.", url);
+                Log.LogInformation("Skipping duplicate file: {Url}.", url);
                 await DataLayer.UpdateTargetDownloaded(postid);
                 return;
             }
@@ -363,11 +363,11 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
                 try
                 {
                     File.Delete(destinationPath);
-                    Program.Logger.LogWarning("Deleted corrupted file {DestinationPath} due to size mismatch.", destinationPath);
+                    Log.LogWarning("Deleted corrupted file {DestinationPath} due to size mismatch.", destinationPath);
                 }
                 catch (IOException ex)
                 {
-                    Program.Logger.LogError(ex, "Failed to delete corrupted file {DestinationPath}. Manual intervention may be required.", destinationPath);
+                    Log.LogError(ex, "Failed to delete corrupted file {DestinationPath}. Manual intervention may be required.", destinationPath);
                 }
                 throw new IOException($"Download verification failed for '{url}'. Expected {expectedLength.Value} bytes but received {actualLength} bytes.");
             }
@@ -475,7 +475,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
         // Ensure the download directory exists.
         _ = Directory.CreateDirectory(_downloadDirectory);
 
-        Program.Logger.LogInformation($"Starting download process with max concurrency of {_maxConcurrency}...");
+        Log.LogInformation($"Starting download process with max concurrency of {_maxConcurrency}...");
 
         var workerTasks = new List<Task>();
 
@@ -502,7 +502,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     /// <inheritdoc/>
     public async Task StopAllTasksAsync()
     {
-        Program.Logger.LogInformation("Stopping all download tasks...");
+        Log.LogInformation("Stopping all download tasks...");
 
 
         // Clear the URL queue to prevent new downloads from starting.
@@ -513,7 +513,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
         // Notify that the queue has been cleared.
         OnQueueFinished();
 
-        Program.Logger.LogInformation("Remaining tasks have been saved to file. All download tasks have been stopped.");
+        Log.LogInformation("Remaining tasks have been saved to file. All download tasks have been stopped.");
     }
 
 }

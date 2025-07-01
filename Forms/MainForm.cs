@@ -1,18 +1,17 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
+// Project Name: MediaRecycler
+// File Name: MainForm.cs
+// Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
+// Distributed under Open Source License
 // Do not remove file headers
 
 
 
 
-using MediaRecycler.Modules;
+using MediaRecycler.Logging;
 using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
 using MediaRecycler.Modules.Options;
-
-using Microsoft.Extensions.Logging;
 
 
 
@@ -23,9 +22,11 @@ public partial class MainForm : Form
 {
 
     private readonly IEventAggregator _aggregator = new EventAggregator();
-    private UrlDownloader? _downloadManager;
-    private IScraper? _scraper;
-    private IBlogScraper _blogScraper;
+
+    //private UrlDownloader? _downloadManager;
+    //private readonly IScraper? _scraper;
+    private readonly IBlogScraper _blogScraper;
+    private readonly CancellationTokenSource cts = new();
 
 
 
@@ -38,7 +39,6 @@ public partial class MainForm : Form
         InitializeComponent();
 
         _blogScraper = blogScraper;
-
 
         // subscribe to the aggregator for the events we are interested in and assign the handlers
         _aggregator.Subscribe<StatusMessage>(OnStatusMessageReceived);
@@ -57,10 +57,9 @@ public partial class MainForm : Form
 
 
 
-
 #pragma warning disable IDE0032
     /// <summary>
-    /// Text box used for logging output in the main viewer.
+    ///     Text box used for logging output in the main viewer.
     /// </summary>
     public RichTextBox MainLogRichTextBox => rtb_main;
 #pragma warning restore IDE0032
@@ -71,7 +70,6 @@ public partial class MainForm : Form
 
 
     /// <summary>
-    /// 
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="text"></param>
@@ -94,6 +92,75 @@ public partial class MainForm : Form
 
 
 
+    private void btn_Cancel_Click(object sender, EventArgs e)
+    {
+        cts.Cancel();
+    }
+
+
+
+
+
+
+    private async void btn_download_Click(object sender, EventArgs e)
+    {
+        btn_Process.Enabled = false;
+
+        try
+        {
+
+
+
+
+            await _blogScraper.DownloadCollectedLinksAsync();
+        }
+        catch (Exception ex)
+        {
+
+            Log.LogError(ex, "An unhandled error occured. Attempting to save progress before aborting...");
+            _aggregator.Publish(new StatusBarMessage("Downloading of videos ended in failure."));
+
+
+
+        }
+        finally
+        {
+
+
+            _aggregator.Publish(new StatusBarMessage("Downloading of videos complete."));
+            Log.LogInformation("Video Queue finished.");
+        }
+
+        btn_Process.Enabled = true;
+    }
+
+
+
+
+
+
+    private async void btn_Process_Click(object sender, EventArgs e)
+    {
+        btn_download.Enabled = false;
+
+        try
+        {
+            await _blogScraper.ExtractTargetLinksAsync();
+        }
+        catch (Exception)
+        {
+
+
+        }
+
+        btn_download.Enabled = true;
+
+    }
+
+
+
+
+
 
     /// <summary>
     ///     Handles the click event for the download button. Gets the Download services from DI container and calls the Start()
@@ -105,32 +172,32 @@ public partial class MainForm : Form
     /// </remarks>
     /// <param name="sender">The source of the event, typically the download button.</param>
     /// <param name="e">An <see cref="EventArgs" /> object containing event data.</param>
-    private async void btn_queue_Click(object sender, EventArgs e)
+    private void btn_queue_Click(object sender, EventArgs e)
     {
 
 
-
+        /*
         _downloadManager = new UrlDownloader(_aggregator);
 
         // --- Subscribe to Events ---
         _downloadManager.DownloadCompleted += (o, args) =>
         {
-            Program.Logger.LogInformation($"[SUCCESS] Downloaded: {args.Url}");
-            Program.Logger.LogInformation($"          -> Saved to: {args.FilePath}");
-            Program.Logger.LogInformation($"          -> Size: {args.FileSizeBytes / 1024.0:F2} KB");
+            Log.LogInformation($"[SUCCESS] Downloaded: {args.Url}");
+            Log.LogInformation($"          -> Saved to: {args.FilePath}");
+            Log.LogInformation($"          -> Size: {args.FileSizeBytes / 1024.0:F2} KB");
         };
 
         _downloadManager.DownloadFailed += (o, downloadFailedEventArgs) =>
         {
-            Program.Logger.LogInformation($"[FAILURE] Failed: {downloadFailedEventArgs.Url}");
-            Program.Logger.LogInformation($"          -> Reason: {downloadFailedEventArgs.Exception.Message}");
+            Log.LogInformation($"[FAILURE] Failed: {downloadFailedEventArgs.Url}");
+            Log.LogInformation($"          -> Reason: {downloadFailedEventArgs.Exception.Message}");
         };
 
-        _downloadManager.QueueFinished += (o, args) => { Program.Logger.LogInformation("\n--- All downloads have been processed. ---"); };
+        _downloadManager.QueueFinished += (o, args) => { Log.LogInformation("\n--- All downloads have been processed. ---"); };
 
         try
         {
-            Program.Logger?.LogInformation("Download button clicked.");
+            _logger?.LogInformation("Download button clicked.");
 
 
             // Example: If you have a DownloadManager or similar service, you would resolve and start it here.
@@ -144,7 +211,7 @@ public partial class MainForm : Form
         }
         catch (Exception ex)
         {
-            Program.Logger?.LogError(ex, "Error running download process.");
+            _logger?.LogError(ex, "Error running download process.");
             AppendToMainViewer(this, $"Error running download: {ex.Message}");
 
         }
@@ -153,67 +220,7 @@ public partial class MainForm : Form
             await _downloadManager.DisposeAsync();
 
         }
-    }
-
-
-
-
-
-
-
-    private async void btn_Process_Click(object sender, EventArgs e)
-    {
-        btn_download.Enabled = false;
-
-        try{
-                await _blogScraper.ExtractTargetLinksAsync();
-            }
-            catch (Exception)
-            {
-
-
-            }
-
-        btn_download.Enabled = true;
-
-    }
-
-
-
-
-
-    private async void btn_download_Click(object sender, EventArgs e)
-    {
-        btn_Process.Enabled = false;
-        try
-        {
-
-
-
-         
-                await _blogScraper.DownloadCollectedLinksAsync();
-        }
-        catch (Exception ex)
-        {
-
-            Program.Logger.LogError(ex, "An unhandled error occured. Attempting to save progress before aborting...");
-            _aggregator.Publish(new StatusBarMessage("Downloading of videos ended in failure."));
-
-
-
-        }
-        finally
-        {
-            if (_scraper != null)
-            {
-                await _scraper.CancelAsync();
-                await _scraper.DisposeAsync();
-            }
-            _aggregator.Publish(new StatusBarMessage("Downloading of videos complete."));
-            Program.Logger.LogInformation("Video Queue finished.");
-        }
-
-        btn_Process.Enabled = true;
+        */
     }
 
 
@@ -224,17 +231,16 @@ public partial class MainForm : Form
     /// <summary>
     ///     Handles the click event of the scrape button, initiating the blog scraping process.
     /// </summary>
-    ///     <param name="sender">The object that triggered the event.</param>
-    ///     <param name="e">The event arguments.</param>
-    ///     <remarks>
-    ///         This method creates an instance of the blog scraper, starts the scraping process, and handles any exceptions that may occur.
-    ///         It also ensures that the scraper is properly disposed of after the process is complete.
-    ///     </remarks>
+    /// <param name="sender">The object that triggered the event.</param>
+    /// <param name="e">The event arguments.</param>
+    /// <remarks>
+    ///     This method creates an instance of the blog scraper, starts the scraping process, and handles any exceptions that
+    ///     may occur.
+    ///     It also ensures that the scraper is properly disposed of after the process is complete.
+    /// </remarks>
     private async void btn_Scrape_Click(object sender, EventArgs e)
     {
         btn_GetVidPages.Enabled = false;
-        ProcessUtils.TerminateBrowserProcesses();
-        ProcessUtils.KillPreviousWebBrowserProcesses();
 
         try
         {
@@ -243,14 +249,14 @@ public partial class MainForm : Form
             // 1. Create the automation service, injecting the page from our manager.
 
             // 2. Create the scraper, injecting the automation service.
-          //  IBlogScraper? bScraper = new BlogScraper(_aggregator);
-           // _scraper = bScraper; // Store the scraper instance in parent interface variable so it can be accessed by the form or other methods without knowing the specific type that has been created.
+            //  IBlogScraper? bScraper = new BlogScraper(_aggregator);
+            // _scraper = bScraper; // Store the scraper instance in parent interface variable so it can be accessed by the form or other methods without knowing the specific type that has been created.
 
             // This is useful for polymorphism and allows us to call methods on the interface without needing to know the concrete implementation.
 
-           
-                await _blogScraper.BeginScrapingTargetBlogAsync();
-           
+
+            await _blogScraper.BeginScrapingTargetBlogAsync(cts.Token);
+
 
         }
         catch (Exception ex)
@@ -270,16 +276,37 @@ public partial class MainForm : Form
     }
 
 
+
+
+
+
+    private void btn_Testing_Click(object sender, EventArgs e)
+    {
+        btn_Testing.Enabled = false;
+
+        //btn_Testing.Visible = false;
+
+
+
+
+    }
+
+
+
+
+
+
     private void chk_OnClick(object sender, EventArgs e)
     {
         // This method is triggered when the checkbox is clicked.
         // It can be used to handle any specific logic related to the checkbox state change.
         if (sender is CheckBox checkBox)
         {
-            Program.Logger?.LogDebug($"Checkbox '{checkBox.Name}' clicked. Checked: {checkBox.Checked}");
+            Log.LogDebug($"Checkbox '{checkBox.Name}' clicked. Checked: {checkBox.Checked}");
+
             if (checkBox.Checked)
             {
-                Program.Logger?.LogInformation($"Checkbox '{checkBox.Name}' is checked.");
+                Log.LogInformation($"Checkbox '{checkBox.Name}' is checked.");
                 ScrapingOptions.Default.SinglePageScan = true;
                 ScrapingOptions.Default.SaveSettings();
             }
@@ -287,13 +314,10 @@ public partial class MainForm : Form
             {
                 ScrapingOptions.Default.SinglePageScan = false;
                 ScrapingOptions.Default.SaveSettings();
-                Program.Logger?.LogInformation($"Checkbox '{checkBox.Name}' is unchecked.");
+                Log.LogInformation($"Checkbox '{checkBox.Name}' is unchecked.");
             }
         }
     }
-
-
-
 
 
 
@@ -316,7 +340,6 @@ public partial class MainForm : Form
 
 
 
-
     private void downloaderSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         //Menu Click DownloaderSettings > Form opening
@@ -330,13 +353,12 @@ public partial class MainForm : Form
 
 
 
-
-    private async void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+    private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
     {
         // Ensure resources are stopped and disposed of properly
         try
         {
-
+            /*
             if (_scraper != null)
             {
                 await _scraper.CancelAsync();
@@ -349,14 +371,15 @@ public partial class MainForm : Form
                 await _downloadManager.StopAllTasksAsync();
                 await _downloadManager.DisposeAsync();
             }
+            */
         }
         catch (Exception ex)
         {
-            Program.Logger?.LogError(ex, "Error during MainForm closing cleanup.");
+            Log.LogError(ex, "Error during MainForm closing cleanup.");
         }
         finally
         {
-            Program.Logger?.LogInformation("MainForm is closing. PuppeteerManager disposed.");
+            Log.LogInformation("MainForm is closing. PuppeteerManager disposed.");
             _aggregator.Unsubscribe<StatusMessage>(OnStatusMessageReceived);
             _aggregator.Unsubscribe<PageNumberMessage>(OnPageCountUpdates);
         }
@@ -367,12 +390,10 @@ public partial class MainForm : Form
 
 
 
-
     private void MainForm_Load(object sender, EventArgs e)
     {
         AppendToMainViewer(this, "ctor finished");
     }
-
 
 
 
@@ -402,7 +423,6 @@ public partial class MainForm : Form
 
 
 
-
     private void OnQueueCountUpdates(QueueCountMessage obj)
     {
         if (InvokeRequired)
@@ -416,6 +436,20 @@ public partial class MainForm : Form
         tb_dlque.Text = obj.QueueCount.ToString();
     }
 
+
+
+
+
+
+    private void OnStatusBarMessageReceivced(StatusBarMessage message)
+    {
+
+        if (InvokeRequired)
+        {
+            _ = BeginInvoke(() => OnStatusBarMessageReceivced(message));
+            tsl_status.Text = message.Text;
+        }
+    }
 
 
 
@@ -439,21 +473,6 @@ public partial class MainForm : Form
 
 
 
-
-    private void OnStatusBarMessageReceivced(StatusBarMessage message)
-    {
-
-        if (InvokeRequired)
-        {
-            _ = BeginInvoke(() => OnStatusBarMessageReceivced(message));
-            tsl_status.Text = message.Text;
-        }
-    }
-
-
-
-
-
     private void puppeteerSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         PuppeteerSettingsForm puppetSettings = new();
@@ -465,109 +484,15 @@ public partial class MainForm : Form
 
 
 
-
     private void scraperSettingsToolStripMenuItem_Click(object sender, EventArgs e)
     {
         //Menu Click ScraperSettings > Form opening
-        Program.Logger?.LogTrace("ScraperSettings form opening.");
+        Log.LogDebug("ScraperSettings form opening.");
 
         ScraperSettingsForm scraperSettingsForm = new();
         _ = scraperSettingsForm.ShowDialog(this);
 
 
     }
-
-
-
-
-
-
-
-
-
-
-
-    /// <summary>
-    ///     Method to toggle the enabled state of buttons based on the sender and a boolean value.
-    ///     It also attached a cancel event handler that is appropriate for the button clicked.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="isEnabled"></param>
-    private async Task ToggleButtonsAsync(object sender, bool isEnabled)
-    {
-        if (sender is Button button)
-        {
-            switch (button.Name)
-            {
-                case nameof(btn_Process):
-                    button.Enabled = isEnabled;
-
-                    if (_scraper != null) await _scraper.CancelAsync();
-                    break;
-                case nameof(btn_download):
-                    button.Enabled = isEnabled;
-                    if (_downloadManager != null) await _downloadManager.StopAllTasksAsync();
-                    break;
-                case nameof(btn_GetVidPages):
-                    button.Enabled = isEnabled;
-                    break;
-            }
-        }
-    }
-
-
-
-    private void btn_Testing_Click(object sender, EventArgs e)
-    {
-        btn_Testing.Enabled = false;
-        //btn_Testing.Visible = false;
-
-
-
-
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

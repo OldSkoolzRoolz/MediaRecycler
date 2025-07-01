@@ -7,6 +7,7 @@
 
 
 
+using MediaRecycler.Logging;
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,8 @@ public partial class PuppeteerSettingsForm : Form
 
 
 
-    private ILogger logger => Program.Logger;
+
+    private readonly ILogger _logger;
 
 
 
@@ -53,13 +55,13 @@ public partial class PuppeteerSettingsForm : Form
         try
         {
             settings.SaveSettings();
-            logger.LogInformation("Puppeteer settings saved successfully.");
+            Log.LogInformation("Puppeteer settings saved successfully.");
             _ = MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
             Close(); // Close the form after saving
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to save Puppeteer settings.");
+            Log.LogError(ex, "Failed to save Puppeteer settings.");
             _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
@@ -111,7 +113,7 @@ public partial class PuppeteerSettingsForm : Form
         // This method can be used to handle the Cancel button click event
         // For example, you might want to discard changes or simply close the form.
         settings.ReloadSettings(); // Reload settings to discard changes made in the form
-        logger.LogInformation("Puppeteer settings reloaded, discarding changes.");
+        Log.LogInformation("Puppeteer settings reloaded, discarding changes.");
         Close(); // Close the form without saving changes
 
     }
@@ -127,12 +129,12 @@ public partial class PuppeteerSettingsForm : Form
         try
         {
             settings.SaveSettings();
-            logger.LogInformation("Puppeteer settings saved successfully.");
+            Log.LogInformation("Puppeteer settings saved successfully.");
             _ = MessageBox.Show("Settings saved successfully.", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to save Puppeteer settings.");
+            Log.LogError(ex, "Failed to save Puppeteer settings.");
             _ = MessageBox.Show("Failed to save settings: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             e.Cancel = true; // Cancel closing if saving fails
         }
@@ -147,7 +149,7 @@ public partial class PuppeteerSettingsForm : Form
     {
         // This method can be used to initialize any additional settings or UI elements
         // when the form is loaded.
-        logger.LogInformation("PuppeteerSettingsForm loaded with settings");
+        Log.LogInformation("PuppeteerSettingsForm loaded with settings");
     }
 
 }

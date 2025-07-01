@@ -98,7 +98,7 @@ public partial class DownloaderSettingsForm : Form
         catch (Exception)
         {
             _ = MessageBox.Show("Error saving settings to file.");
-            //Program.Logger.LogError(exception, "Error saving settings.");
+            //Log.LogError(exception, "Error saving settings.");
             settings.ReloadSettings();
         }
     }

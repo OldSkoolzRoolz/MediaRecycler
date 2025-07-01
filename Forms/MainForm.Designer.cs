@@ -359,10 +359,11 @@
             btn_Cancel.Enabled = false;
             btn_Cancel.Location = new Point(30, 616);
             btn_Cancel.Name = "btn_Cancel";
-            btn_Cancel.Size = new Size(110, 23);
+            btn_Cancel.Size = new Size(128, 26);
             btn_Cancel.TabIndex = 17;
             btn_Cancel.Text = "Cancel/Stop";
             btn_Cancel.UseVisualStyleBackColor = true;
+            btn_Cancel.Click += btn_Cancel_Click;
             // 
             // MainForm
             // 

@@ -5,7 +5,7 @@
 // Do not remove file headers
 
 
-//keeper
+
 
 using PuppeteerSharp;
 
@@ -14,36 +14,35 @@ using PuppeteerSharp;
 namespace MediaRecycler.Modules.Interfaces;
 
 
-/// <summary>
-///     Provides high level abstraction of puppeteer sharp internal functions
-///     Purpose is to provide a clean interface for web automation tasks and to encapsulate
-///     many of the boilerplate code required to interact with PuppeteerSharp. like waiting for selectors.
-/// </summary>
 public interface IWebAutomationService
 {
 
+    /// <summary>
+    ///     Clicks on an HTML element specified by the given CSS selector and waits for the page navigation to complete.
+    /// </summary>
+    /// <param name="paginationSelector">
+    ///     The CSS selector of the element to be clicked. This selector should uniquely identify the target element on the
+    ///     page.
+    /// </param>
+    /// <param name="cancellationToken"></param>
+    /// <returns>
+    ///     A task that represents the asynchronous operation. The task completes when the click action is performed
+    ///     and the page navigation triggered by the click is finished.
+    /// </returns>
+    /// <exception cref="Exception">
+    ///     Thrown if an error occurs while attempting to click the element or during the navigation process.
+    /// </exception>
+    Task ClickElementAsync(string paginationSelector, CancellationToken cancellationToken);
 
 
-    Task ClickElementAsync(string defaultPaginationSelector);
 
 
 
 
 
     /// <summary>
-    ///     Attempts to log in to the current site asynchronously.
+    ///     Attempts to log in to the current page using credentials from environment variables.
     /// </summary>
-    /// <remarks>
-    ///     This method navigates to the login page, fills in the credentials retrieved from
-    ///     environment variables, and submits the login form. It also includes a delay to
-    ///     ensure the login process completes before proceeding.
-    /// </remarks>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation.
-    /// </returns>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown if required elements (e.g., email or password input fields) are not found on the page.
-    /// </exception>
     Task DoSiteLoginAsync();
 
 
@@ -53,57 +52,44 @@ public interface IWebAutomationService
 
 
     Task<string[]> ExtractImageLinksFromPageAsync(string selector);
+
     Task<string[]> ExtractSourceUrlFromElementAsync(string selector);
-
-
 
     Task<string?> GetElementTextAsync(string selector);
 
-
-
-
-
-
+    /// <summary>
+    /// 
+    /// </summary>
+    IPage? Page { get; }
 
     /// <summary>
-    ///     Retrieves a collection of nodes from the current page that match the specified CSS selector.
+    /// 
     /// </summary>
-    /// <param name="selector">
-    ///     The CSS selector used to identify the nodes to retrieve. This should be a valid CSS selector string.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task{TResult}" /> representing the asynchronous operation,
-    ///     with a result containing an array of <see cref="IElementHandle" /> objects representing the matching nodes.
-    /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown if the <paramref name="selector" /> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown if the operation fails to retrieve the nodes due to an invalid selector or other page-related issues.
-    /// </exception>
-    /// <exception cref="Exception">
-    ///     Thrown if an unexpected error occurs during the operation.
-    /// </exception>
+    IBrowserContext? Context { get; set; }
+
+    IBrowser? Browser { get; set; }
+
     Task<IElementHandle[]> GetNodeCollectionFromPageAsync(string selector);
 
 
 
 
 
+
+
     /// <summary>
-    /// 
+    /// Gets the contents of the current page the PuppeteerManager is attached to.
+    /// Method does not navigate to a new page, it simply retrieves the HTML content of the current page.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>String containing the HTML of the current page</returns>
     Task<string> GetPageContentsAsync();
 
 
 
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="url"></param>
-    /// <returns></returns>
+
+
+
     Task<string> GetPageContentsAsync(string url);
 
 
@@ -113,18 +99,9 @@ public interface IWebAutomationService
 
 
     /// <summary>
-    ///     Asynchronously retrieves the title of the current web page.
+    ///     Asynchronously retrieves the title of the current page.
     /// </summary>
-    /// <remarks>
-    ///     This method interacts with the browser to fetch the title of the currently loaded page.
-    ///     It is useful for verifying the page content or ensuring navigation to the correct page.
-    /// </remarks>
-    /// <returns>
-    ///     A <see cref="string" /> representing the title of the current page.
-    /// </returns>
-    /// <exception cref="Exception">
-    ///     Thrown if an error occurs while attempting to retrieve the page title.
-    /// </exception>
+    /// <returns>A <see cref="string" /> representing the title of the current page.</returns>
     Task<string> GetPageTitleAsync();
 
 
@@ -134,14 +111,15 @@ public interface IWebAutomationService
 
 
     /// <summary>
-    ///     Navigates the browser to the specified URL asynchronously.
+    ///     Asynchronously navigates to the specified URL using the Puppeteer page instance.
     /// </summary>
-    /// <param name="url">
-    ///     The URL to navigate to. This should be a valid and well-formed URL string.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation.
-    /// </returns>
+    ///     <param name="url">The URL to navigate to.</param>
+    ///     <returns>A task representing the asynchronous operation.</returns>
+    ///     <remarks>
+    ///         Publishes status messages for navigation start, success, and failure.
+    ///         Logs information messages for navigation start and result.
+    ///         Handles exceptions and publishes error messages.
+    ///     </remarks>
     Task GoToAsync(string url);
 
 
@@ -151,25 +129,20 @@ public interface IWebAutomationService
 
 
     /// <summary>
-    ///     Determines whether an element specified by the given CSS selector is visible on the current page.
+    ///     Determines whether the specified element, identified by its CSS selector, is visible on the page.
     /// </summary>
     /// <param name="selector">
-    ///     The CSS selector used to identify the element. This should be a valid CSS selector string.
+    ///     The CSS selector of the element to check for visibility.
     /// </param>
     /// <returns>
-    ///     A <see cref="Task{TResult}" /> representing the asynchronous operation,
-    ///     with a result of <c>true</c> if the element is visible; otherwise, <c>false</c>.
+    ///     A task that represents the asynchronous operation. The task result contains a boolean value:
+    ///     <c>true</c> if the element is visible (i.e., it exists in the DOM and has a non-zero width and height);
+    ///     otherwise, <c>false</c>.
     /// </returns>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown if the <paramref name="selector" /> is <c>null</c> or empty.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    ///     Thrown if the operation fails to determine the visibility of the element due to an invalid selector
-    ///     or other page-related issues.
-    /// </exception>
-    /// <exception cref="Exception">
-    ///     Thrown if an unexpected error occurs during the operation.
-    /// </exception>
+    /// <remarks>
+    ///     If an exception occurs during the visibility check, it is logged using the event aggregator,
+    ///     and the method returns <c>false</c>.
+    /// </remarks>
     Task<bool> IsElementVisibleAsync(string selector);
 
 
@@ -178,20 +151,6 @@ public interface IWebAutomationService
 
 
 
-    /// <summary>
-    ///     Navigates to the next page in the current web automation context asynchronously.
-    /// </summary>
-    /// <remarks>
-    ///     This method is typically used in scenarios where pagination is involved,
-    ///     and the next page needs to be loaded for further processing or data extraction.
-    ///     The implementation of this method may vary depending on the specific pagination mechanism of the website.
-    /// </remarks>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation.
-    /// </returns>
-    /// <exception cref="Exception">
-    ///     Thrown if an error occurs while attempting to navigate to the next page.
-    /// </exception>
     Task NavigateToNextPageAsync();
 
 
@@ -200,6 +159,23 @@ public interface IWebAutomationService
 
 
 
+    /// <summary>
+    ///     Retrieves the first element that matches the specified CSS selector from the current page.
+    /// </summary>
+    /// <param name="selector">
+    ///     A CSS selector string used to identify the desired element on the page.
+    /// </param>
+    /// <returns>
+    ///     An <see cref="IElementHandle" /> representing the first matching element, or <c>null</c> if no matching element is
+    ///     found.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    ///     Thrown when the <paramref name="selector" /> is <c>null</c>, empty, or consists only of whitespace.
+    /// </exception>
+    /// <remarks>
+    ///     This method uses PuppeteerSharp's <c>QuerySelectorAsync</c> to locate the element.
+    ///     If an error occurs during the operation, it logs the error and returns <c>null</c>.
+    /// </remarks>
     Task<IElementHandle?> QuerySelectorAsync(string selector);
 
 
@@ -209,24 +185,31 @@ public interface IWebAutomationService
 
 
     /// <summary>
-    ///     Waits asynchronously for a specific selector to appear on the page.
+    ///     Automatically waits for a selector to appear on the page.
     /// </summary>
-    /// <param name="waitForSelector">
-    ///     The CSS selector to wait for. This should be a valid selector string that identifies the desired element.
-    /// </param>
-    /// <returns>
-    ///     A <see cref="Task" /> that represents the asynchronous operation. The task completes when the selector appears on
-    ///     the page.
-    /// </returns>
-    /// <exception cref="Exception">
-    ///     Thrown if an error occurs while waiting for the selector, such as a timeout or invalid selector.
-    /// </exception>
+    /// <param name="waitForSelector"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
     Task WaitForSelectorAsync(string waitForSelector);
 
 
 
+
+
+
+
+    /// <summary>
+    /// Performs application-defined tasks associated with freeing, releasing, or
+    /// resetting unmanaged resources asynchronously.</summary>
+    /// <returns>A task that represents the asynchronous dispose operation.</returns>
     ValueTask DisposeAsync();
 
 
+
+
+
+
+
+    Task InitAsync();
 
 }

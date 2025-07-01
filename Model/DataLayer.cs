@@ -9,6 +9,8 @@
 
 using System.Text.RegularExpressions;
 
+using MediaRecycler.Logging;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -24,7 +26,7 @@ namespace MediaRecycler.Model;
 internal class DataLayer
 {
 
-    private static readonly ILogger _logger = Program.Logger;
+    private static readonly ILogger _logger = _logger;
 
     internal DataLayer()
     {
@@ -73,22 +75,22 @@ internal class DataLayer
         catch (DbUpdateException ex)
         {
             // Log the error
-            _logger.LogError(ex, "Duplicate key violation occurred while inserting target link to database.");
+            Log.LogError(ex, "Duplicate key violation occurred while inserting target link to database.");
         }
         catch (SqlException ex)
         {
             // Log the error
-            _logger.LogError(ex, "SQL error occurred while inserting target link to database.");
+            Log.LogError(ex, "SQL error occurred while inserting target link to database.");
         }
         catch (IOException ex)
         {
             // Log the error
-            _logger.LogError(ex, "IO error occurred while inserting target link to database.");
+            Log.LogError(ex, "IO error occurred while inserting target link to database.");
         }
         finally
         {
             // Ensure any resources are released
-            _logger.LogInformation("InsertTargetLinkToDb method completed.");
+            Log.LogInformation("InsertTargetLinkToDb method completed.");
         }
     }
 
@@ -115,7 +117,6 @@ internal class DataLayer
     internal static async Task InsertPostPageUrlToDb(string postid, string link)
     {
 
-
         try
         {
             await using (var db = new MRContext())
@@ -129,20 +130,20 @@ internal class DataLayer
                 catch (DbUpdateException)
                 {
                     // Handle database update exception
-                    _logger.LogError("Failed to insert duplicate post page URL to database.");
+                    Log.LogError("Failed to insert duplicate post page URL to database.");
                 }
 
                 catch (Exception)
                 {
                     // Handle other unexpected exceptions
-                    _logger.LogError("An unexpected error occurred while inserting post page URL to database.");
+                    Log.LogError("An unexpected error occurred while inserting post page URL to database.");
                 }
             }
         }
         catch (Exception)
         {
             // Log or handle the exception
-            _logger.LogError("Failed to insert post page URL to database.");
+            Log.LogError("Failed to insert post page URL to database.");
         }
     }
 
@@ -161,17 +162,6 @@ internal class DataLayer
 
 
 
-    internal static void InsertPostPageUrlToDb(string link)
-    {
-        string? postid = link.Split("/").LastOrDefault();
-
-        if (!string.IsNullOrWhiteSpace(postid))
-        {
-            InsertPostPageUrlToDb(postid, link);
-
-        }
-
-    }
 
 
 
@@ -226,7 +216,7 @@ internal class DataLayer
             var record = await db.TargetLinks.Where(p => p.PostId == ePostId).FirstOrDefaultAsync();
             if (record == null)
             {
-                _logger.LogError("Record not found in db");
+                Log.LogError("Record not found in db");
                 return;
             }
             try
@@ -242,7 +232,7 @@ internal class DataLayer
             }
             catch (Exception)
             {
-                Program.Logger.LogError("Unexpected database error updating a record");
+                Log.LogError("Unexpected database error updating a record");
             }
         }
 

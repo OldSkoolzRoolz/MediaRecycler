@@ -13,7 +13,7 @@ namespace MediaRecycler.Modules.Interfaces;
 public interface IBlogScraper : IScraper
 {
 
-    Task BeginScrapingTargetBlogAsync();
+    Task BeginScrapingTargetBlogAsync(CancellationToken cancellation);
 
 
 
