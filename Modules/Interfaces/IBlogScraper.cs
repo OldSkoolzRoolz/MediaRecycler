@@ -27,11 +27,13 @@ public interface IBlogScraper : IScraper
 
 
 
+
     /// <summary>
     ///     Extracts URLs from the page that contain videos, but does not retrieve the actual video content.
     /// </summary>
+    /// <param name="ctsToken"></param>
     /// <returns></returns>
-    Task ExtractTargetLinksAsync();
+    Task ExtractTargetLinksAsync(CancellationToken ctsToken);
 
 
 

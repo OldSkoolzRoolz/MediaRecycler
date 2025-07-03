@@ -1,7 +1,8 @@
-﻿// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
+﻿// Project Name: MediaRecycler
+// File Name: DataLayer.cs
+// Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
+// Distributed under Open Source License
 // Do not remove file headers
 
 
@@ -20,101 +21,19 @@ using Microsoft.Extensions.Logging;
 namespace MediaRecycler.Model;
 
 
-
-
-
 internal class DataLayer
 {
 
+
+
     private static readonly ILogger _logger = _logger;
 
-    internal DataLayer()
-    {
-    }
 
 
 
 
 
-
-    /// <summary>
-    /// Inserts a target link into the database.
-    /// </summary>
-    /// <param name="postId">The ID of the post.</param>
-    /// <param name="link">The link to be inserted.</param>
-    /// <exception cref="ArgumentException">Thrown if postId or link is null or whitespace.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the insert operation fails.</exception>
-    /// <summary>
-    /// Inserts a target link into the database.
-    /// </summary>
-    /// <exception cref="ArgumentException">Thrown if postId or link is null or whitespace.</exception>
-    /// <exception cref="InvalidOperationException">Thrown if the insert operation fails.</exception>
-    internal static void InsertTargetLinkToDb(string postId, string link)
-    {
-        // Define a constant for the ArgumentException message
-        const string requiredMessage = "Post ID and link are required.";
-
-        // Validate postId and link parameters
-        if (string.IsNullOrWhiteSpace(postId) || string.IsNullOrWhiteSpace(link))
-        {
-            throw new ArgumentException(requiredMessage, nameof(postId));
-        }
-
-        // Additional validation rules for postId and link
-        if (!IsValidPostId(postId) || !IsValidLink(link))
-        {
-            throw new ArgumentException("Invalid post ID or link format.", nameof(postId));
-        }
-
-        try
-        {
-            using var db = new MRContext();
-            db.TargetLinks.Add(new TargetLink(postId, link));
-            db.SaveChanges();
-        }
-        catch (DbUpdateException ex)
-        {
-            // Log the error
-            Log.LogError(ex, "Duplicate key violation occurred while inserting target link to database.");
-        }
-        catch (SqlException ex)
-        {
-            // Log the error
-            Log.LogError(ex, "SQL error occurred while inserting target link to database.");
-        }
-        catch (IOException ex)
-        {
-            // Log the error
-            Log.LogError(ex, "IO error occurred while inserting target link to database.");
-        }
-        finally
-        {
-            // Ensure any resources are released
-            Log.LogInformation("InsertTargetLinkToDb method completed.");
-        }
-    }
-
-    // Additional validation methods
-    private static bool IsValidPostId(string postId)
-    {
-        // Implement post ID validation logic here
-        return !string.IsNullOrWhiteSpace(postId);
-    }
-
-    private static bool IsValidLink(string link)
-    {
-        // Implement link validation logic here
-        var linkPattern = new Regex(@"^https?://[^\s]+$");
-        return linkPattern.IsMatch(link);
-    }
-
-
-
-
-
-
-
-    internal static async Task InsertPostPageUrlToDb(string postid, string link)
+    internal static async Task InsertPostPageUrlToDbAsync(string postid, string link)
     {
 
         try
@@ -152,13 +71,108 @@ internal class DataLayer
 
 
 
+    public static async Task InsertTargetLinkAndMarkPageAsProcessedAsync(string postId, string videoLink)
+    {
+        using var db = new MRContext();
+        db.TargetLinks.Add(new TargetLink { PostId = postId, Link = videoLink });
+        var record = db.PostPages.SingleOrDefault(p => p.PostId == postId);
+
+        if (record != null)
+        {
+            record.IsProcessed = true;
+            await db.SaveChangesAsync();
+        }
+    }
 
 
 
 
 
 
+    /// <summary>
+    ///     Inserts a target link into the database.
+    /// </summary>
+    /// <param name="postId">The ID of the post.</param>
+    /// <param name="link">The link to be inserted.</param>
+    /// <exception cref="ArgumentException">Thrown if postId or link is null or whitespace.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the insert operation fails.</exception>
+    /// <summary>
+    ///     Inserts a target link into the database.
+    /// </summary>
+    /// <exception cref="ArgumentException">Thrown if postId or link is null or whitespace.</exception>
+    /// <exception cref="InvalidOperationException">Thrown if the insert operation fails.</exception>
+    internal static void InsertTargetLinkToDb(string postId, string link)
+    {
+        // Define a constant for the ArgumentException message
+        const string requiredMessage = "Post ID and link are required.";
 
+        // Validate postId and link parameters
+        if (string.IsNullOrWhiteSpace(postId) || string.IsNullOrWhiteSpace(link)) throw new ArgumentException(requiredMessage, nameof(postId));
+
+        // Additional validation rules for postId and link
+        if (!IsValidPostId(postId) || !IsValidLink(link)) throw new ArgumentException("Invalid post ID or link format.", nameof(postId));
+
+        try
+        {
+            using var db = new MRContext();
+            db.TargetLinks.Add(new TargetLink(postId, link));
+            db.SaveChanges();
+        }
+        catch (DbUpdateException ex)
+        {
+            // Log the error
+            Log.LogError(ex, "Duplicate key violation occurred while inserting target link to database.");
+        }
+        catch (SqlException ex)
+        {
+            // Log the error
+            Log.LogError(ex, "SQL error occurred while inserting target link to database.");
+        }
+        catch (IOException ex)
+        {
+            // Log the error
+            Log.LogError(ex, "IO error occurred while inserting target link to database.");
+        }
+        finally
+        {
+            // Ensure any resources are released
+            Log.LogInformation("InsertTargetLinkToDb method completed.");
+        }
+    }
+
+
+
+
+
+
+    private static bool IsValidLink(string link)
+    {
+        // Implement link validation logic here
+        var linkPattern = new Regex(@"^https?://[^\s]+$");
+        return linkPattern.IsMatch(link);
+    }
+
+
+
+
+
+
+    // Additional validation methods
+    private static bool IsValidPostId(string postId)
+    {
+        // Implement post ID validation logic here
+        return !string.IsNullOrWhiteSpace(postId);
+    }
+
+
+
+
+
+
+    internal static async Task MarkPostPageAsProcessedAsync(string postId)
+    {
+        throw new NotImplementedException();
+    }
 
 
 
@@ -171,7 +185,7 @@ internal class DataLayer
 
         await using (var db = new MRContext())
         {
-            var page = await db.PostPages.SingleOrDefaultAsync(p => p.PostId == postid.ToString());
+            var page = await db.PostPages.SingleOrDefaultAsync(p => p.PostId == postid);
 
             if (page != null)
             {
@@ -193,17 +207,6 @@ internal class DataLayer
 
 
 
-    public static async Task InsertTargetLinkAndMarkPageAsProcessedAsync(string postId, string videoLink)
-    {
-        using var db = new MRContext();
-        db.TargetLinks.Add(new TargetLink { PostId = postId, Link = videoLink });
-        var record = db.PostPages.SingleOrDefault(p => p.PostId == postId);
-        if (record != null)
-        {
-            record.IsProcessed = true;
-            await db.SaveChangesAsync();
-        }
-    }
 
 
 
@@ -214,11 +217,13 @@ internal class DataLayer
         {
 
             var record = await db.TargetLinks.Where(p => p.PostId == ePostId).FirstOrDefaultAsync();
+
             if (record == null)
             {
                 Log.LogError("Record not found in db");
                 return;
             }
+
             try
             {
                 record.IsDownloaded = true;
@@ -238,8 +243,4 @@ internal class DataLayer
 
     }
 
-    internal static async Task MarkPostPageAsProcessedAsync(string postId)
-    {
-        throw new NotImplementedException();
-    }
 }

@@ -1,7 +1,8 @@
-﻿// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
+﻿// Project Name: MediaRecycler
+// File Name: UrlDownloader.cs
+// Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
+// Distributed under Open Source License
 // Do not remove file headers
 
 
@@ -19,7 +20,6 @@ using System.Net.Http.Headers;
 using MediaRecycler.Logging;
 using MediaRecycler.Model;
 using MediaRecycler.Modules.Interfaces;
-using MediaRecycler.Modules.Loggers;
 using MediaRecycler.Modules.Options;
 
 using Microsoft.Extensions.Logging;
@@ -39,15 +39,18 @@ namespace MediaRecycler.Modules;
 public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 {
 
-    private readonly IEventAggregator _aggregator;
 
     private readonly string _downloadDirectory;
 
     private readonly HttpClient _httpClient;
+    private readonly ILogger _logger;
     private readonly int _maxConcurrency;
+
+
+
+    private readonly object _queLock = new();
     private readonly AsyncRetryPolicy _retryPolicy;
     private readonly ConcurrentQueue<string> _urlQueue = new();
-
 
 
 
@@ -58,12 +61,14 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     ///     Initializes a new instance of the UrlDownloader.
     /// </summary>
     /// <param name="aggregator">The maximum number of concurrent downloads. Must be greater than 0.</param>
-    public UrlDownloader(IEventAggregator aggregator)
+    public UrlDownloader()
     {
 
-        _aggregator = aggregator;
-        _maxConcurrency = DownloaderOptions.Default.MaxConcurrency > 0 ? DownloaderOptions.Default.MaxConcurrency : throw new ArgumentOutOfRangeException(nameof(DownloaderOptions.Default.MaxConcurrency), "Max concurrency must be greater than 0.");
-        _downloadDirectory = DownloaderOptions.Default.DownloadPath ?? throw new ArgumentNullException(nameof(DownloaderOptions.Default.DownloadPath), "Download directory must be specified.");
+        _maxConcurrency = DownloaderOptions.Default.MaxConcurrency > 0
+                    ? DownloaderOptions.Default.MaxConcurrency
+                    : throw new ArgumentOutOfRangeException(nameof(DownloaderOptions.Default.MaxConcurrency), "Max concurrency must be greater than 0.");
+        _downloadDirectory = DownloaderOptions.Default.DownloadPath ??
+                             throw new ArgumentNullException(nameof(DownloaderOptions.Default.DownloadPath), "Download directory must be specified.");
 
         // It's a best practice to reuse HttpClient instances.
         _httpClient = new HttpClient();
@@ -72,13 +77,13 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
         // Define a retry policy using Polly.
         // This policy will retry up to 3 times on HttpRequestException (network errors) 
         // or on HTTP 5xx server errors. It will use an exponential backoff strategy.
-        _retryPolicy = Policy.Handle<HttpRequestException>().Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested)
-            .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
+        _retryPolicy = Policy.Handle<HttpRequestException>().Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested).WaitAndRetryAsync(3,
+                    retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
                     (exception, timespan, retryAttempt, context) =>
                     {
                         var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
-                        Log.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
-                                     retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
+                        Log.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}", retryAttempt,
+                                    DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
                         return Task.CompletedTask;
                     });
 
@@ -87,15 +92,16 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-        var _retryPolicy2 = Policy.Handle<HttpRequestException>(ShouldRetryHttpRequest).Or<IOException>().Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested)
-              .WaitAndRetryAsync(DownloaderOptions.Default.MaxRetries, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
-                          (exception, timespan, retryAttempt, context) =>
-                          {
-                              var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
-                              Log.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
-                                           retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
-                              return Task.CompletedTask;
-                          });
+        var _retryPolicy2 = Policy.Handle<HttpRequestException>(ShouldRetryHttpRequest).Or<IOException>()
+                    .Or<TaskCanceledException>(ex => !ex.CancellationToken.IsCancellationRequested).WaitAndRetryAsync(DownloaderOptions.Default.MaxRetries,
+                                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)),
+                                (exception, timespan, retryAttempt, context) =>
+                                {
+                                    var url = context.ContainsKey("Url") ? context["Url"] as Uri : null;
+                                    Log.LogWarning(exception, "Retry {RetryAttempt}/{MaxRetries} for URL {Url}. Delaying for {Delay:ss\\.fff}s due to error: {ErrorMessage}",
+                                                retryAttempt, DownloaderOptions.Default.MaxRetries, url?.ToString() ?? "N/A", timespan, exception.Message);
+                                    return Task.CompletedTask;
+                                });
 
 
 
@@ -103,35 +109,6 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
     }
 
-
-
-
-
-
-
-    /// <inheritdoc/>
-    public int QueueCount
-    {
-        get { return _urlQueue.Count; }
-    }
-
-
-
-
-
-    /// <summary>
-    ///     Determines whether an HTTP request should be retried based on the exception.
-    /// </summary>
-    private bool ShouldRetryHttpRequest(HttpRequestException ex)
-    {
-        if (ex.StatusCode is null or HttpStatusCode.Forbidden)
-        {
-            return false;
-        }
-
-        int statusCode = (int)ex.StatusCode;
-        return statusCode is >= 500 and <= 599 or (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests;
-    }
 
 
 
@@ -146,15 +123,137 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     {
 
         if (_httpClient is IAsyncDisposable httpClientAsyncDisposable)
-        {
             await httpClientAsyncDisposable.DisposeAsync();
-        }
         else
-        {
             _httpClient.Dispose();
-        }
     }
 
+
+
+
+
+
+    /// <summary>
+    ///     Fired when a file has been successfully downloaded and verified.
+    /// </summary>
+    public event EventHandler<DownloadCompletedEventArgs>? DownloadCompleted;
+
+    /// <summary>
+    ///     Fired when a file fails to download after all retry attempts.
+    /// </summary>
+    public event EventHandler<DownloadFailedEventArgs>? DownloadFailed;
+
+
+
+    /// <inheritdoc />
+    public int QueueCount
+    {
+        get { return _urlQueue.Count; }
+    }
+
+
+
+    /// <summary>
+    ///     Fired when the queue has been fully processed and all download tasks have completed.
+    /// </summary>
+    public event EventHandler? QueueFinished;
+
+
+
+
+
+
+    /// <summary>
+    ///     Adds a single URL to the download queue.
+    /// </summary>
+    /// <param name="url">The URL to queue.</param>
+    public void QueueUrl(string url)
+    {
+        if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute)) throw new ArgumentException("A valid URL must be provided.", nameof(url));
+
+        _urlQueue.Enqueue(url);
+    }
+
+
+
+
+
+
+    /// <summary>
+    ///     Adds multiple URLs to the download queue.
+    /// </summary>
+    /// <param name="urls">
+    ///     A collection of URLs to be added to the queue. Each URL must be a valid, absolute URI.
+    /// </param>
+    /// <exception cref="ArgumentNullException">
+    ///     Thrown when the <paramref name="urls" /> parameter is <c>null</c>.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    ///     Thrown when any URL in the collection is invalid or not well-formed.
+    /// </exception>
+    public void QueueUrls(IEnumerable<string> urls)
+    {
+        foreach (string url in urls) QueueUrl(url);
+    }
+
+
+
+
+
+
+    /// <summary>
+    ///     Starts the asynchronous download process for all queued URLs.
+    /// </summary>
+    /// <remarks>
+    ///     This method initializes and starts multiple worker tasks, each responsible for processing the download queue.
+    ///     The number of concurrent workers is determined by the configured maximum concurrency level.
+    ///     Once all queued downloads are completed, the <see cref="QueueFinished" /> event is triggered.
+    /// </remarks>
+    /// <returns>A <see cref="Task" /> representing the asynchronous operation.</returns>
+    /// <exception cref="IOException">Thrown if there is an issue creating the download directory.</exception>
+    /// <exception cref="AggregateException">Thrown if one or more worker tasks encounter unhandled exceptions.</exception>
+    public async Task StartDownloadsAsync()
+    {
+        // Ensure the download directory exists.
+        _ = Directory.CreateDirectory(_downloadDirectory);
+
+        Log.LogInformation($"Starting download process with max concurrency of {_maxConcurrency}...");
+
+        var workerTasks = new List<Task>();
+
+        for (int i = 0; i < _maxConcurrency; i++)
+
+                    // Each worker is a long-running task that will pull from the queue.
+            workerTasks.Add(DownloadWorkerAsync());
+
+        // Wait for all worker tasks to complete. A worker completes when the queue is empty.
+        await Task.WhenAll(workerTasks);
+
+        // Signal that the entire queue has been processed.
+        OnQueueFinished();
+    }
+
+
+
+
+
+
+    /// <inheritdoc />
+    public async Task StopAllTasksAsync()
+    {
+        Log.LogInformation("Stopping all download tasks...");
+
+
+        // Clear the URL queue to prevent new downloads from starting.
+        while (_urlQueue.TryDequeue(out _))
+        {
+        }
+
+        // Notify that the queue has been cleared.
+        OnQueueFinished();
+
+        Log.LogInformation("Remaining tasks have been saved to file. All download tasks have been stopped.");
+    }
 
 
 
@@ -185,29 +284,6 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-
-    /// <summary>
-    ///     Fired when a file has been successfully downloaded and verified.
-    /// </summary>
-    public event EventHandler<DownloadCompletedEventArgs>? DownloadCompleted;
-
-    /// <summary>
-    ///     Fired when a file fails to download after all retry attempts.
-    /// </summary>
-    public event EventHandler<DownloadFailedEventArgs>? DownloadFailed;
-
-
-
-
-    private readonly object _queLock = new();
-    private readonly ILogger _logger;
-
-
-
-
-
-
-
     /// <summary>
     ///     The core worker method. Each worker runs this method, continuously dequeuing
     ///     and processing URLs until the queue is empty.
@@ -215,9 +291,11 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
     private async Task DownloadWorkerAsync()
     {
         string? postid = null;
+
         while (true)
         {
             string? url = null;
+
             // Check if the queue is empty before processing.
             // If it is, we exit the worker loop.
             if (_urlQueue.IsEmpty)
@@ -225,16 +303,17 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
                 Log.LogDebug("The download queue is empty. Worker exiting.");
                 break;
             }
+
             lock (_queLock)
             {
                 _ = _urlQueue.TryDequeue(out url);
             }
 
             if (string.IsNullOrWhiteSpace(url))
-            {
-                // If no URL was dequeued, continue to the next iteration.
+
+                        // If no URL was dequeued, continue to the next iteration.
                 continue;
-            }
+
             try
             {
                 postid = Path.GetFileNameWithoutExtension(url).Split("-")[1];
@@ -255,17 +334,10 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-
-
-
-
-
-
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected virtual async Task OnDownloadCompleted(DownloadCompletedEventArgs e)
     {
         Log.LogDebug($"Download complete: {e?.FilePath}");
-        _aggregator.Publish(new QueueCountMessage(QueueCount));
 
 
 
@@ -281,8 +353,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected virtual void OnDownloadFailed(DownloadFailedEventArgs e)
     {
         Log.LogError(e.Exception, $"Download failed: {e.Url}");
@@ -294,14 +365,12 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected virtual void OnQueueFinished()
     {
         Log.LogDebug("The download queue has been processed. Downloader exiting.");
         QueueFinished?.Invoke(this, EventArgs.Empty);
     }
-
 
 
 
@@ -336,10 +405,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
             response.EnsureSuccessStatusCode();
 
             long? expectedLength = response.Content.Headers.ContentLength;
-            if (!expectedLength.HasValue)
-            {
-                throw new InvalidOperationException($"Missing Content-Length header for '{url}'.");
-            }
+            if (!expectedLength.HasValue) throw new InvalidOperationException($"Missing Content-Length header for '{url}'.");
 
             await using (var fileStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None, buffer, true))
             await using (var contentStream = await response.Content.ReadAsStreamAsync())
@@ -369,6 +435,7 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
                 {
                     Log.LogError(ex, "Failed to delete corrupted file {DestinationPath}. Manual intervention may be required.", destinationPath);
                 }
+
                 throw new IOException($"Download verification failed for '{url}'. Expected {expectedLength.Value} bytes but received {actualLength} bytes.");
             }
 
@@ -386,134 +453,15 @@ public class UrlDownloader : IUrlDownloader, IAsyncDisposable
 
 
 
-
-
-
-
-
-
-
-
     /// <summary>
-    ///     Fired when the queue has been fully processed and all download tasks have completed.
+    ///     Determines whether an HTTP request should be retried based on the exception.
     /// </summary>
-    public event EventHandler? QueueFinished;
-
-
-
-
-
-
-
-    /// <summary>
-    ///     Adds a single URL to the download queue.
-    /// </summary>
-    /// <param name="url">The URL to queue.</param>
-    public void QueueUrl(string url)
+    private bool ShouldRetryHttpRequest(HttpRequestException ex)
     {
-        if (string.IsNullOrWhiteSpace(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
-        {
-            throw new ArgumentException("A valid URL must be provided.", nameof(url));
-        }
+        if (ex.StatusCode is null or HttpStatusCode.Forbidden) return false;
 
-        _urlQueue.Enqueue(url);
-    }
-
-
-
-
-
-
-
-    /// <summary>
-    ///     Adds multiple URLs to the download queue.
-    /// </summary>
-    /// <param name="urls">
-    ///     A collection of URLs to be added to the queue. Each URL must be a valid, absolute URI.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown when the <paramref name="urls" /> parameter is <c>null</c>.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///     Thrown when any URL in the collection is invalid or not well-formed.
-    /// </exception>
-    public void QueueUrls(IEnumerable<string> urls)
-    {
-        foreach (string url in urls)
-        {
-            QueueUrl(url);
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    /// <summary>
-    ///     Starts the asynchronous download process for all queued URLs.
-    /// </summary>
-    /// <remarks>
-    ///     This method initializes and starts multiple worker tasks, each responsible for processing the download queue.
-    ///     The number of concurrent workers is determined by the configured maximum concurrency level.
-    ///     Once all queued downloads are completed, the <see cref="QueueFinished" /> event is triggered.
-    /// </remarks>
-    /// <returns>A <see cref="Task" /> representing the asynchronous operation.</returns>
-    /// <exception cref="IOException">Thrown if there is an issue creating the download directory.</exception>
-    /// <exception cref="AggregateException">Thrown if one or more worker tasks encounter unhandled exceptions.</exception>
-    public async Task StartDownloadsAsync()
-    {
-        // Ensure the download directory exists.
-        _ = Directory.CreateDirectory(_downloadDirectory);
-
-        Log.LogInformation($"Starting download process with max concurrency of {_maxConcurrency}...");
-
-        var workerTasks = new List<Task>();
-
-        for (int i = 0; i < _maxConcurrency; i++)
-        {
-
-            // Each worker is a long-running task that will pull from the queue.
-            workerTasks.Add(DownloadWorkerAsync());
-        }
-
-        // Wait for all worker tasks to complete. A worker completes when the queue is empty.
-        await Task.WhenAll(workerTasks);
-
-        // Signal that the entire queue has been processed.
-        OnQueueFinished();
-    }
-
-
-
-
-
-
-
-    /// <inheritdoc/>
-    public async Task StopAllTasksAsync()
-    {
-        Log.LogInformation("Stopping all download tasks...");
-
-
-        // Clear the URL queue to prevent new downloads from starting.
-        while (_urlQueue.TryDequeue(out _))
-        {
-        }
-
-        // Notify that the queue has been cleared.
-        OnQueueFinished();
-
-        Log.LogInformation("Remaining tasks have been saved to file. All download tasks have been stopped.");
+        int statusCode = (int)ex.StatusCode;
+        return statusCode is >= 500 and <= 599 or (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests;
     }
 
 }

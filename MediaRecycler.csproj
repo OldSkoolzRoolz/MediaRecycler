@@ -19,6 +19,7 @@
     <UserSecretsId>fd576e9f-aea8-4045-a046-1df6c55b5f5c</UserSecretsId>
     <NuGetAuditMode>direct</NuGetAuditMode>
     <NuGetAuditLevel>critical</NuGetAuditLevel>
+    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="Migrations\**" />

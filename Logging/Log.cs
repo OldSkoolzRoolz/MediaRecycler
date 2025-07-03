@@ -289,6 +289,58 @@ public static class Log
 
 
 
+    public static void UpdateQueue(int value)
+    {
+        lock (_lock)
+        {
+            UIUpdateQueue?.Invoke(value);
+        }
+    }
+
+
+
+
+
+
+    public static void UpdatePageCount(int value)
+    {
+        lock (_lock)
+        {
+            UIUpdatePageCount?.Invoke(value);
+        }
+    }
+
+    public static void UpdateLinkCount(int value)
+    {
+        lock (_lock)
+        {
+            UIUpdateLinkCount?.Invoke(value);
+        }
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
     public static Action<string>? WriteMessage;
+
+    /// <summary>
+    /// Action for queue textbox UI updates
+    /// </summary>
+    public static Action<int>? UIUpdateQueue;
+
+
+    /// <summary>
+    /// Action for page number textbox update
+    /// </summary>
+    public static Action<int>? UIUpdatePageCount;
+
+
+    /// <summary>
+    /// Represents an action that updates the UI with the current link count.
+    /// </summary>
+    /// <remarks>This delegate can be assigned to a method that takes an integer parameter,  representing the
+    /// number of links, and performs a UI update based on that value. If not assigned, no action will be performed when
+    /// invoked.</remarks>
+    public static Action<int>? UIUpdateLinkCount;
 
 }

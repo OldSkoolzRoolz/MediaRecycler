@@ -1,0 +1,17 @@
+﻿{
+   "ConnectionStringName": "dab-connection-string",
+   "Dacpac": null,
+   "DatabaseType": 3,
+   "MergeDacpacs": false,
+   "ProjectPath": "C:\\Users\\kcrow\\Documents\\Data\\Solutions\\MediaRecycler\\MediaRecycler",
+   "Tables": [
+      {
+         "Name": "[dbo].[PostPages]",
+         "ObjectType": 0
+      },
+      {
+         "Name": "[dbo].[TargetLinks]",
+         "ObjectType": 0
+      }
+   ]
+}

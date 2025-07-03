@@ -1,7 +1,8 @@
-// Project Name: ${File.ProjectName}
-// Author:  Kyle Crowder 
+// Project Name: MediaRecycler
+// File Name: Program.cs
+// Author:  Kyle Crowder
 // Github:  OldSkoolzRoolz
-// Distributed under Open Source License 
+// Distributed under Open Source License
 // Do not remove file headers
 
 
@@ -11,6 +12,7 @@ using MediaRecycler.Logging;
 using MediaRecycler.Modules;
 using MediaRecycler.Modules.Interfaces;
 using MediaRecycler.Modules.Loggers;
+using MediaRecycler.Properties;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -25,7 +27,7 @@ namespace MediaRecycler;
 internal class Program
 {
 
-    public static ILogger? _logger = null;
+    public static ILogger? _logger;
 
 
 
@@ -44,7 +46,8 @@ internal class Program
         Application.SetHighDpiMode(HighDpiMode.SystemAware);
 
 
-        var host = CreateHostBuilder(args).Build();
+        var host = Host.CreateDefaultBuilder(args).ConfigureServices((context, services) => { DependencyInjectionConfig.ConfigureServices(services); }).Build();
+
 
         var serviceProvider = host.Services;
 
@@ -60,7 +63,11 @@ internal class Program
             _logger = serviceProvider.GetRequiredService<ILogger<Program>>();
             Log.LogInformation("Application Starting");
 
+            //Wires our internal logger to standard logging
             Log.WriteMessage += s => _logger.LogInformation(s);
+
+            Log.WriteMessage += s => LoggingMethods.LogToConsole(s);
+
 
             //Start the host.. This runs background services.
             // We don't await host.RunAsync() because its a blocking call
@@ -87,34 +94,19 @@ internal class Program
 
     }
 
-
-
-
-    private static IHostBuilder CreateHostBuilder(string[] args) =>
-              Host.CreateDefaultBuilder(args)
-              .ConfigureServices((hostContext, services) =>
-              {
-
-
-                  // Register application services from a separate configuration class
-                  DependencyInjectionConfig.ConfigureServices(services);
-
-              });
-
 }
 
 
-
 /// <summary>
-/// 
 /// </summary>
 public class DependencyInjectionConfig
 {
+
     /// <summary>
-    /// Configures the dependency injection container by registering application services and their implementations.
+    ///     Configures the dependency injection container by registering application services and their implementations.
     /// </summary>
     /// <param name="services">
-    /// The <see cref="IServiceCollection"/> to which services will be added.
+    ///     The <see cref="IServiceCollection" /> to which services will be added.
     /// </param>
     public static void ConfigureServices(IServiceCollection services)
     {
@@ -144,8 +136,7 @@ public class DependencyInjectionConfig
         });
 
         // Add DbContext
-        services.AddDbContextFactory<MRContext>(options =>
-                    options.UseSqlServer(Properties.Settings.Default.ConnString));
+        services.AddDbContextFactory<MRContext>(options => options.UseSqlServer(Settings.Default.ConnString));
 
 
 
@@ -155,10 +146,11 @@ public class DependencyInjectionConfig
 
         // 1. Register IEventAggregator
         // Assuming you have a concrete implementation of IEventAggregator, e.g., EventAggregatorImpl
-        services.AddSingleton<IEventAggregator, EventAggregator>(); // Replace with your actual implementation
+        // services.AddSingleton<IEventAggregator, EventAggregator>(); // Replace with your actual implementation
 
         // 2. Register IWebAutomationService
         services.AddSingleton<IWebAutomationService, WebAutomationService>();
+
         // 3. Register IDownloaderModule
         services.AddSingleton<IUrlDownloader, UrlDownloader>();
 
@@ -171,5 +163,5 @@ public class DependencyInjectionConfig
         // you'll need to inject IConfiguration into this method and use it to
         // configure your services (e.g., for options).
     }
-}
 
+}

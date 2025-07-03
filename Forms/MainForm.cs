@@ -21,7 +21,6 @@ namespace MediaRecycler;
 public partial class MainForm : Form
 {
 
-    private readonly IEventAggregator _aggregator = new EventAggregator();
 
     //private UrlDownloader? _downloadManager;
     //private readonly IScraper? _scraper;
@@ -41,12 +40,10 @@ public partial class MainForm : Form
         _blogScraper = blogScraper;
 
         // subscribe to the aggregator for the events we are interested in and assign the handlers
-        _aggregator.Subscribe<StatusMessage>(OnStatusMessageReceived);
-        _aggregator.Subscribe<PageNumberMessage>(OnPageCountUpdates);
-        _aggregator.Subscribe<QueueCountMessage>(OnQueueCountUpdates);
-        _aggregator.Subscribe<StatusBarMessage>(OnStatusBarMessageReceivced);
 
-
+        Log.UIUpdateQueue += (i) => UpdateQueueDelegate(i);
+        Log.UIUpdateLinkCount += (i) => UpdateLinkCount(i);
+        Log.UIUpdatePageCount += (i) => UpdatePageCount(i);
 
 
 
@@ -54,6 +51,50 @@ public partial class MainForm : Form
 
 
 
+
+
+
+    private void UpdatePageCount(int i)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(new Action<int>(UpdatePageCount), i);
+            return;
+        }
+
+        tb_pages.Text = i.ToString();
+    }
+
+
+
+
+
+
+    private void UpdateLinkCount(int i)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(new Action<int>(UpdateLinkCount), i);
+            return;
+        }
+
+        tb_videos.Text = i.ToString();
+    }
+
+
+
+
+
+
+    private void UpdateQueueDelegate(int i)
+    {
+        if (InvokeRequired)
+        {
+           Invoke(new Action<int>(UpdateQueueDelegate),i);
+        }
+
+        tb_dlque.Text = i.ToString();
+    }
 
 
 
@@ -118,7 +159,6 @@ public partial class MainForm : Form
         {
 
             Log.LogError(ex, "An unhandled error occured. Attempting to save progress before aborting...");
-            _aggregator.Publish(new StatusBarMessage("Downloading of videos ended in failure."));
 
 
 
@@ -127,7 +167,6 @@ public partial class MainForm : Form
         {
 
 
-            _aggregator.Publish(new StatusBarMessage("Downloading of videos complete."));
             Log.LogInformation("Video Queue finished.");
         }
 
@@ -145,7 +184,7 @@ public partial class MainForm : Form
 
         try
         {
-            await _blogScraper.ExtractTargetLinksAsync();
+            await _blogScraper.ExtractTargetLinksAsync(cts.Token);
         }
         catch (Exception)
         {
@@ -358,20 +397,11 @@ public partial class MainForm : Form
         // Ensure resources are stopped and disposed of properly
         try
         {
-            /*
-            if (_scraper != null)
-            {
-                await _scraper.CancelAsync();
-                await _scraper.DisposeAsync();
-            }
+
+            _blogScraper?.CancelAsync();
+            _blogScraper?.DisposeAsync();
 
 
-            if (_downloadManager != null)
-            {
-                await _downloadManager.StopAllTasksAsync();
-                await _downloadManager.DisposeAsync();
-            }
-            */
         }
         catch (Exception ex)
         {
@@ -380,8 +410,6 @@ public partial class MainForm : Form
         finally
         {
             Log.LogInformation("MainForm is closing. PuppeteerManager disposed.");
-            _aggregator.Unsubscribe<StatusMessage>(OnStatusMessageReceived);
-            _aggregator.Unsubscribe<PageNumberMessage>(OnPageCountUpdates);
         }
     }
 
@@ -397,44 +425,6 @@ public partial class MainForm : Form
 
 
 
-
-
-
-    /// <summary>
-    ///     A registered handler for <see cref="EventAggregator" />  Handles updates to the page count by processing the
-    ///     provided <see cref="PageNumberMessage" />.
-    /// </summary>
-    /// <param name="pageNumberMessage">
-    ///     The message containing the updated page number information.
-    /// </param>
-    private void OnPageCountUpdates(PageNumberMessage pageNumberMessage)
-    {
-        if (InvokeRequired)
-        {
-            _ = BeginInvoke(() => OnPageCountUpdates(pageNumberMessage));
-            return;
-        }
-
-        tb_pages.Text = pageNumberMessage.PageNumber.ToString();
-    }
-
-
-
-
-
-
-    private void OnQueueCountUpdates(QueueCountMessage obj)
-    {
-        if (InvokeRequired)
-        {
-            _ = BeginInvoke(() => OnQueueCountUpdates(obj));
-            return;
-
-
-        }
-
-        tb_dlque.Text = obj.QueueCount.ToString();
-    }
 
 
 

@@ -38,6 +38,15 @@ public interface IWebAutomationService
 
 
 
+    /// <summary>
+    /// Navigates to the specified URL using the provided Puppeteer page instance.
+    /// </summary>
+    /// <param name="page"></param>
+    /// <param name="url"></param>
+    /// <param name="maxRetries"></param>
+    /// <returns></returns>
+    Task<bool> NavigateWithRetryAsync( string url, int maxRetries = 3);
+
 
 
     /// <summary>
@@ -49,12 +58,11 @@ public interface IWebAutomationService
 
 
 
-
-
-    Task<string[]> ExtractImageLinksFromPageAsync(string selector);
-
-    Task<string[]> ExtractSourceUrlFromElementAsync(string selector);
-
+/// <summary>
+/// 
+/// </summary>
+/// <param name="selector"></param>
+/// <returns></returns>
     Task<string?> GetElementTextAsync(string selector);
 
     /// <summary>

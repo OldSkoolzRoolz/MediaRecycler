@@ -90,22 +90,21 @@ public class PuppeteerManager : IAsyncDisposable
 
         Log.LogInformation("Disposing Puppeteer resources...");
 
-        try
+        if (Browser != null)
         {
-            if (Page is { IsClosed: false }) await Page.CloseAsync();
-        }
-        catch (Exception ex)
-        {
-            Log.LogWarning($"Error closing page: {ex.Message}");
-        }
-
-        try
-        {
-            if (Browser != null) await Browser.CloseAsync();
-        }
-        catch (Exception ex)
-        {
-            Log.LogWarning($"Error closing browser: {ex.Message}");
+            try
+            {
+                await Browser.CloseAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error closing browser: {ex.Message}");
+            }
+            finally
+            {
+                Browser?.Dispose();
+                Browser = null;
+            }
         }
 
         Log.LogInformation("Resources disposed.");
@@ -243,9 +242,9 @@ public class PuppeteerManager : IAsyncDisposable
                             Headless = HeadlessBrowserOptions.Default.Headless,
                             ExecutablePath = t.Result.GetExecutablePath(),
                             DefaultViewport = null,
-                            LogProcess = true,
                             Timeout = ScrapingOptions.Default.DefaultPuppeteerTimeout,
-                            UserDataDir = HeadlessBrowserOptions.Default.UserDataDir
+                            UserDataDir = HeadlessBrowserOptions.Default.UserDataDir,
+                            Args = ["--disable-web-security", "--disable-features=VizDisplayCompositor", "--no-sandbox", "--disable-dev-shm-usage"]
                 });
 
                 Browser = browser;
@@ -255,6 +254,8 @@ public class PuppeteerManager : IAsyncDisposable
             Page = await Browser.NewPageAsync();
             Page.DefaultTimeout = 90000;
             Page.DefaultNavigationTimeout = 90000;
+            await Page.SetBypassCSPAsync(true);
+
 
             /*
                             await Page.SetRequestInterceptionAsync(true);
@@ -277,11 +278,23 @@ public class PuppeteerManager : IAsyncDisposable
 
                             */
             // await CreateBrowserTaskAsync(HeadlessBrowserOptions.Default);
-            if (Browser is null) throw new ArgumentNullException(nameof(Browser), "Browser failed to initialize.");
+  
 
-            if (Page is null) throw new ArgumentNullException(nameof(Page), "Page failed to initialize.");
-
-
+        }
+        catch (NavigationException ex)
+        {
+            // Handle navigation-specific errors
+            Log.LogInformation($"Navigation failed: {ex.Message}");
+        }
+        catch (TimeoutException ex)
+        {
+            // Handle timeout errors specifically
+            Log.LogInformation($"Operation timed out: {ex.Message}");
+        }
+        catch (PuppeteerException ex)
+        {
+            // Handle other Puppeteer-specific exceptions
+            Log.LogInformation($"Puppeteer error: {ex.Message}");
         }
         catch (Exception e)
         {
@@ -289,7 +302,7 @@ public class PuppeteerManager : IAsyncDisposable
             Log.LogError(e, "Error initializing puppet manager.");
 
             // _aggregator.Publish(new StatusMessage("Unable to create browser object. Check settings and try again."));
-            if (Context != null) await Context.CloseAsync();
+            if(Page != null) await Page.CloseAsync();
             if (Browser != null) await Browser.CloseAsync();
 
         }
@@ -297,7 +310,26 @@ public class PuppeteerManager : IAsyncDisposable
 
 
 
+    public void LogException(Exception ex, string operation, Dictionary<string, object>? context = null)
+    {
+        var logData = new Dictionary<string, object>
+        {
+                    ["Operation"] = operation,
+                    ["ExceptionType"] = ex.GetType().Name,
+                    ["Message"] = ex.Message,
+                    ["StackTrace"] = ex.StackTrace
+        };
 
+        if (context != null)
+        {
+            foreach (var kvp in context)
+            {
+                logData[kvp.Key] = kvp.Value;
+            }
+        }
+
+        Log.LogError(ex, "Puppeteer operation failed: {Operation}", operation);
+    }
 
 
     /*

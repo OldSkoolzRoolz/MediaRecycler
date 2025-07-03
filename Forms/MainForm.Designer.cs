@@ -356,7 +356,7 @@
             // 
             // btn_Cancel
             // 
-            btn_Cancel.Enabled = false;
+            btn_Cancel.FlatStyle = FlatStyle.System;
             btn_Cancel.Location = new Point(30, 616);
             btn_Cancel.Name = "btn_Cancel";
             btn_Cancel.Size = new Size(128, 26);

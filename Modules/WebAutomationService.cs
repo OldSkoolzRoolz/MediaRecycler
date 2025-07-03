@@ -30,35 +30,11 @@ namespace MediaRecycler.Modules;
 public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAsyncDisposable
 {
 
-    private readonly IEventAggregator? _aggregator;
-    private readonly ILogger _logger;
 
     private readonly int DefaultTimeout = 90000; // Default timeout for operations in milliseconds
 
 
 
-
-
-
-    /// <summary>
-    ///     Initializes a new instance of the <see cref="WebAutomationService" /> class.
-    /// </summary>
-    /// <param name="logger">
-    ///     The logger instance used for logging messages and errors.
-    /// </param>
-    /// <param name="aggregator">
-    ///     The event aggregator used for publishing and subscribing to events.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    ///     Thrown when <paramref name="logger" /> or <paramref name="aggregator" /> is <c>null</c>.
-    /// </exception>
-    public WebAutomationService()
-    {
-
-
-        //   _puppeteerManager = new PuppeteerManager(aggregator);
-
-    }
 
 
 
@@ -120,6 +96,264 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public async Task<string> SafelyExtractTextAsync(string selector, int timeoutMs = 10000)
+    {
+        try
+        {
+            // Wait for element to be available
+            await Page.WaitForSelectorAsync(selector, new WaitForSelectorOptions
+            {
+                        Timeout = timeoutMs,
+                        Visible = true
+            });
+
+            // Double-check element exists before interaction
+            var element = await Page.QuerySelectorAsync(selector);
+            if (element == null)
+            {
+                throw new InvalidOperationException($"Element with selector '{selector}' not found");
+            }
+
+            return await element.EvaluateFunctionAsync<string>("el => el.textContent?.trim() || ''");
+        }
+        catch (WaitTaskTimeoutException ex)
+        {
+            Console.WriteLine($"Element '{selector}' not found within {timeoutMs}ms: {ex.Message}");
+            return string.Empty; // Return safe default
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error extracting text from '{selector}': {ex.Message}");
+            return string.Empty;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static async Task<T> RetryWithExponentialBackoffAsync<T>(
+                Func<Task<T>> operation,
+                int maxRetries = 3,
+                TimeSpan? baseDelay = null,
+                Func<Exception, bool>? shouldRetry = null)
+    {
+        var delay = baseDelay ?? TimeSpan.FromSeconds(1);
+        shouldRetry ??= ex => ex is TimeoutException || ex is NavigationException;
+
+        Exception lastException = null;
+
+        for (int attempt = 0; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Exception ex) when (attempt < maxRetries && shouldRetry(ex))
+            {
+                lastException = ex;
+                var currentDelay = TimeSpan.FromMilliseconds(delay.TotalMilliseconds * Math.Pow(2, attempt));
+                Console.WriteLine($"Attempt {attempt + 1} failed: {ex.Message}. Retrying in {currentDelay.TotalSeconds}s...");
+                await Task.Delay(currentDelay);
+            }
+        }
+
+        throw new InvalidOperationException($"Operation failed after {maxRetries + 1} attempts", lastException);
+    }
+
+
+
+
+
+
+
+    /// <summary>
+    /// Checks the health of the provided browser instance by verifying its responsiveness
+    /// and ability to create new pages.
+    /// </summary>
+    /// <param name="browser">
+    /// The browser instance to be checked. This should be an active instance of <see cref="IBrowser"/>.
+    /// </param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result is <c>true</c> if the browser is healthy;
+    /// otherwise, <c>false</c>.
+    /// </returns>
+    /// <exception cref="Exception">
+    /// Thrown if an error occurs during the health check process.
+    /// </exception>
+    public async Task<bool> IsBrowserHealthyAsync(IBrowser browser)
+    {
+        try
+        {
+            var pages = await browser.PagesAsync();
+            if (pages.Length == 0)
+            {
+                // Create a test page to verify browser is responsive
+                await using var testPage = await browser.NewPageAsync();
+                await testPage.GoToAsync("about:blank", new NavigationOptions { Timeout = 5000 });
+                return true;
+            }
+
+            // Test if we can create a new page
+            await using var newPage = await browser.NewPageAsync();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Browser health check failed: {ex.Message}");
+            return false;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /// <summary>
+    /// Navigates to the specified URL with retry logic in case of navigation failures.
+    /// </summary>
+    /// <param name="page">
+    /// The <see cref="IPage"/> instance representing the browser page where the navigation will occur.
+    /// </param>
+    /// <param name="url">
+    /// The URL to navigate to. This should be a valid and reachable URL.
+    /// </param>
+    /// <param name="maxRetries">
+    /// The maximum number of retry attempts in case of navigation failures. Defaults to 3.
+    /// </param>
+    /// <returns>
+    /// A task that represents the asynchronous operation. The task result is a boolean indicating whether the navigation
+    /// was successful (<c>true</c>) or failed after exhausting all retries (<c>false</c>).
+    /// </returns>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown if the <paramref name="page"/> or <paramref name="url"/> is <c>null</c>.
+    /// </exception>
+    /// <exception cref="Exception">
+    /// Thrown if an unexpected error occurs during navigation.
+    /// </exception>
+    public async Task<bool> NavigateWithRetryAsync( string url, int maxRetries = 3)
+    {
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await Page.GoToAsync(url, new NavigationOptions
+                {
+                            Timeout = 30000, // 30 seconds
+                            WaitUntil = [ WaitUntilNavigation.Networkidle0 ]
+                });
+                return true;
+            }
+            catch (TimeoutException ex)
+            {
+                Log.LogInformation($"Attempt {attempt}: Navigation timeout - {ex.Message}");
+                if (attempt == maxRetries)
+                {
+                    Log.LogInformation("Max retries reached. Navigation failed.");
+                    return false;
+                }
+                await Task.Delay(2000 * attempt); // Progressive delay
+            }
+        }
+        return false;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /// <summary>
     ///     Performs application-defined tasks associated with freeing, releasing, or
     ///     resetting unmanaged resources asynchronously.
@@ -127,12 +361,8 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
     /// <returns>A task that represents the asynchronous dispose operation.</returns>
     public new async ValueTask DisposeAsync()
     {
-        if (Page != null) await Page.DisposeAsync();
-
-
-
-        if (Browser != null) await Browser.DisposeAsync();
-
+ 
+        await base.DisposeAsync();
     }
 
 
@@ -167,7 +397,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
 
             //  await Page.WaitForNavigationAsync(new NavigationOptions { WaitUntil = [ WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle0 ]});
 
-            _aggregator?.Publish(new StatusMessage("Login to site was successful"));
+           Log.LogInformation("Login to site was successful");
         }
         catch (Exception e)
         {
@@ -177,27 +407,6 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
 
     }
 
-
-
-
-
-
-    /// <inheritdoc />
-    public Task<string[]> ExtractImageLinksFromPageAsync(string selector)
-    {
-        throw new NotImplementedException();
-    }
-
-
-
-
-
-
-    /// <inheritdoc />
-    public Task<string[]> ExtractSourceUrlFromElementAsync(string selector)
-    {
-        throw new NotImplementedException();
-    }
 
 
 
@@ -214,7 +423,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
 
             if (element == null)
             {
-                _aggregator?.Publish(new StatusMessage($"Element with selector '{selector}' not found."));
+               Log.LogInformation($"Element with selector '{selector}' not found.");
                 return null;
             }
 
@@ -222,12 +431,12 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
         }
         catch (WaitTaskTimeoutException)
         {
-            _aggregator?.Publish(new StatusMessage($"Timeout waiting for selector '{selector}'."));
+           Log.LogInformation($"Timeout waiting for selector '{selector}'.");
             return null;
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new StatusMessage($"Error getting text from selector '{selector}': {ex.Message}"));
+           Log.LogInformation($"Error getting text from selector '{selector}': {ex.Message}");
             return null;
         }
         finally
@@ -251,7 +460,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new StatusMessage($"Error getting node collection for selector '{selector}': {ex.Message}"));
+           Log.LogInformation($"Error getting node collection for selector '{selector}': {ex.Message}");
             return [];
         }
     }
@@ -315,7 +524,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new StatusMessage($"Error getting page title: {ex.Message}"));
+           Log.LogInformation($"Error getting page title: {ex.Message}");
             throw;
         }
     }
@@ -337,7 +546,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
     /// </remarks>
     public async Task GoToAsync(string url)
     {
-        if (Page is null)
+        if (Page == null)
         {
             Log.LogCritical("Unable to use browser Page object. Object is null.");
             throw new InvalidOperationException("Browser Page object is null.");
@@ -345,18 +554,20 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
 
         try
         {
-            _aggregator?.Publish(new StatusMessage($"Navigating to {url}..."));
-            Log.LogInformation($"Navigating to page {url}...");
+           Log.LogInformation($"Navigating to {url}...");
 
             var response = await Page.GoToAsync(url, DefaultTimeout, [WaitUntilNavigation.DOMContentLoaded, WaitUntilNavigation.Networkidle0]).ConfigureAwait(false);
 
-            if (!response.Ok) _aggregator?.Publish(new StatusMessage($"Navigation failed with status: {response.Status}"));
-            _aggregator?.Publish(new StatusMessage("Navigation successful."));
+            if (!response.Ok){Log.LogWarning($"Navigation failed with status: {response.Status}");}
+            else
+            {
+                Log.LogInformation("Navigation succesful.");
+            }
 
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new StatusMessage($"Error navigating to {url}: {ex.Message}"));
+           Log.LogInformation($"Error navigating to {url}: {ex.Message}");
 
         }
 
@@ -396,7 +607,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new StatusMessage($"Error checking visibility of element '{selector}': {ex.Message}"));
+           Log.LogInformation($"Error checking visibility of element '{selector}': {ex.Message}");
             return false;
         }
     }
@@ -448,7 +659,7 @@ public class WebAutomationService : PuppeteerManager, IWebAutomationService, IAs
         }
         catch (Exception ex)
         {
-            _aggregator?.Publish(new StatusMessage($"Error in QuerySelectorAsync: {ex.Message}"));
+           Log.LogInformation($"Error in QuerySelectorAsync: {ex.Message}");
             return null;
         }
     }
